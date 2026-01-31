@@ -1,0 +1,4 @@
+# file: D:\ai_boomi\backend\app\rdkit_analyzer.py
+# hypothesis_version: 6.151.4
+
+[0.0, 0.15, 0.25, 0.3, 0.6, 1.0, 200, 300, 500, 'C(=O)Cl', 'C1OC1', 'C=[N+]=[N-]', 'N=C=O', 'N=O', 'NN', 'OO', 'S(=O)(=O)Cl', '[N+](=O)[O-]', '[N-]=[N+]=[N-]', 'acyl_chloride', 'azide', 'diazo_compound', 'epoxide', 'high', 'hydrazine', 'isocyanate', 'low', 'medium', 'nitro_group', 'nitroso_group', 'peroxide', 'sulfonyl_chloride']

@@ -1,0 +1,4 @@
+# file: D:\ai_boomi\backend\app\chembl_client.py
+# hypothesis_version: 6.151.4
+
+[6.0, 30.0, 100, 404, 1000, 86400, 'CHEMBL', 'Unknown', 'activities', 'canonical_smiles', 'false', 'format', 'json', 'limit', 'molecule_chembl_id', 'molecule_pref_name', 'pchembl_value', 'standard_type', 'target_chembl_id', 'targets']
