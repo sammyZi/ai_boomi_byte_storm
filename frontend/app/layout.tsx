@@ -1,11 +1,15 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Poppins } from 'next/font/google';
 import './globals.css';
 import Providers from './providers';
 import Layout from '@/components/Layout';
 import MedicalDisclaimer from '@/components/MedicalDisclaimer';
 
-const inter = Inter({ subsets: ['latin'] });
+const poppins = Poppins({ 
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-poppins',
+});
 
 export const metadata: Metadata = {
   title: 'AI-Powered Drug Discovery Platform',
@@ -20,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${poppins.variable} font-sans antialiased`}>
         <Providers>
           <Layout>{children}</Layout>
           <MedicalDisclaimer />

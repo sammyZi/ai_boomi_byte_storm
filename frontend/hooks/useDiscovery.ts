@@ -41,7 +41,7 @@ export function useDiscovery(diseaseName?: string) {
 
     // Reset method
     reset: () => {
-      query.remove();
+      queryClient.removeQueries({ queryKey: ['discovery'] });
       mutation.reset();
     },
   };

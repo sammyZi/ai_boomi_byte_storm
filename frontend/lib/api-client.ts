@@ -61,12 +61,14 @@ class APIClient {
   private handleError(error: AxiosError): ErrorResponse {
     if (error.response) {
       // Server responded with error
-      const data = error.response.data as any;
+      const data = error.response.data as ErrorResponse | Record<string, unknown>;
+      if (data && typeof data === 'object' && 'error_code' in data) {
+        return data as ErrorResponse;
+      }
       return {
-        error_code: data.error_code || 'SERVER_ERROR',
-        message: data.message || 'An error occurred on the server',
-        details: data.details,
-        timestamp: data.timestamp || new Date().toISOString(),
+        error_code: 'SERVER_ERROR',
+        message: 'An error occurred on the server',
+        timestamp: new Date().toISOString(),
       };
     } else if (error.request) {
       // Request made but no response

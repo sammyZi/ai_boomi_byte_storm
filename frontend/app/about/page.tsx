@@ -2,7 +2,7 @@ import { Database, Cpu, Microscope, Shield } from 'lucide-react';
 
 export default function AboutPage() {
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-8">
       <h1 className="text-4xl font-bold text-gray-900 mb-6">
         About the AI-Powered Drug Discovery Platform
       </h1>
@@ -83,7 +83,7 @@ export default function AboutPage() {
               </h3>
               <p className="text-gray-600">
                 Using RDKit, we calculate molecular properties and assess drug-likeness using
-                Lipinski's Rule of Five. We screen for toxic substructures and generate composite
+                Lipinski&apos;s Rule of Five. We screen for toxic substructures and generate composite
                 scores combining binding affinity, drug-likeness, and safety. Finally, BioMistral-7B
                 provides AI-powered analysis of the top candidates.
               </p>
@@ -133,7 +133,7 @@ export default function AboutPage() {
             <strong>40% Binding Affinity:</strong> Normalized from pChEMBL values (IC50, Ki, Kd)
           </li>
           <li>
-            <strong>30% Drug-Likeness:</strong> Based on Lipinski's Rule of Five compliance
+            <strong>30% Drug-Likeness:</strong> Based on Lipinski&apos;s Rule of Five compliance
           </li>
           <li>
             <strong>20% Safety:</strong> Inverse of toxicity score from SMARTS pattern matching

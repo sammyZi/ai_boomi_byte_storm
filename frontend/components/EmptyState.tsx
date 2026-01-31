@@ -14,7 +14,7 @@ export default function EmptyState({ onSearchAgain }: EmptyStateProps) {
       </div>
       <h3 className="text-2xl font-semibold text-gray-900 mb-3">No Results Found</h3>
       <p className="text-gray-600 mb-6">
-        We couldn't find any drug candidates for this disease. This could be because:
+        We couldn&apos;t find any drug candidates for this disease. This could be because:
       </p>
       <ul className="text-left text-gray-600 space-y-2 mb-8 max-w-md mx-auto">
         <li>• The disease name might be misspelled</li>

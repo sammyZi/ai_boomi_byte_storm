@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, Suspense } from 'react';
+import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import useDiscovery from '@/hooks/useDiscovery';
 import LoadingIndicator from '@/components/LoadingIndicator';
@@ -14,13 +14,7 @@ function ResultsContent() {
   const router = useRouter();
   const query = searchParams.get('q') || '';
 
-  const { data, isLoading, isError, error, search } = useDiscovery();
-
-  useEffect(() => {
-    if (query && query.length >= 2) {
-      search(query);
-    }
-  }, [query]);
+  const { data, isLoading, isError, error, refetch } = useDiscovery(query);
 
   const handleSearchAgain = () => {
     router.push('/');
@@ -28,7 +22,7 @@ function ResultsContent() {
 
   const handleRetry = () => {
     if (query) {
-      search(query);
+      refetch();
     }
   };
 
@@ -48,6 +42,7 @@ function ResultsContent() {
   }
 
   if (isLoading) {
+    console.log('Loading results for:', query);
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <LoadingIndicator message={`Discovering drug candidates for "${query}"...`} />
@@ -56,6 +51,7 @@ function ResultsContent() {
   }
 
   if (isError && error) {
+    console.error('Error fetching results:', error);
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <ErrorMessage error={error} onRetry={handleRetry} />
@@ -63,7 +59,9 @@ function ResultsContent() {
     );
   }
 
-  if (!data || data.candidates.length === 0) {
+  if (!data || !data.candidates || data.candidates.length === 0) {
+    // Log for debugging
+    console.log('No candidates found. Data:', data);
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <EmptyState onSearchAgain={handleSearchAgain} />
@@ -71,10 +69,11 @@ function ResultsContent() {
     );
   }
 
+  console.log('Displaying results:', data.candidates.length, 'candidates');
   return (
-    <div>
+    <div className="min-h-screen bg-gray-50 mt-8">
       <ResultsHeader data={data} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <CandidateList candidates={data.candidates} />
       </div>
     </div>
