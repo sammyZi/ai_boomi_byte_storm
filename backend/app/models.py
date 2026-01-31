@@ -298,3 +298,24 @@ class ErrorResponse(BaseModel):
         default_factory=lambda: datetime.utcnow().isoformat(),
         description="Error timestamp (ISO format)"
     )
+
+
+class AnalyzeCandidateRequest(BaseModel):
+    """Request schema for single candidate AI analysis endpoint."""
+    molecule: Molecule = Field(..., description="Molecule information")
+    target: Target = Field(..., description="Target protein information")
+    properties: MolecularProperties = Field(..., description="Molecular properties")
+    toxicity: ToxicityAssessment = Field(..., description="Toxicity assessment")
+
+
+class AnalyzeCandidateResponse(BaseModel):
+    """Response schema for single candidate AI analysis endpoint."""
+    ai_analysis: Optional[str] = Field(
+        None,
+        description="AI-generated analysis text, or null if analysis failed"
+    )
+    success: bool = Field(..., description="Whether AI analysis was successful")
+    message: str = Field(
+        default="AI analysis generated successfully",
+        description="Status message"
+    )

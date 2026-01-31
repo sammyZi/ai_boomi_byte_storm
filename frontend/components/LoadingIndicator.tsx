@@ -21,7 +21,7 @@ export default function LoadingIndicator({
     'Searching bioactive molecules...',
     'Analyzing molecular properties...',
     'Calculating scores...',
-    'Generating AI analysis...',
+    'Ranking candidates...',
   ];
 
   useEffect(() => {

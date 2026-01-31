@@ -14,8 +14,9 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from config.settings import settings
-from app.models import DiscoveryRequest, DiscoveryResponse, ErrorResponse
+from app.models import DiscoveryRequest, DiscoveryResponse, ErrorResponse, AnalyzeCandidateRequest, AnalyzeCandidateResponse
 from app.discovery_pipeline import DiscoveryPipeline
+from app.biomistral_engine import BioMistralEngine
 from app.rate_limiter import RateLimiter, RateLimitMiddleware
 from app.security import anonymize_ip, get_client_ip
 
@@ -372,6 +373,85 @@ async def discover_drugs(request: DiscoveryRequest) -> DiscoveryResponse:
                 "details": {"error": str(e)},
                 "timestamp": datetime.utcnow().isoformat()
             }
+        )
+
+
+@app.post(
+    "/api/analyze-candidate",
+    response_model=AnalyzeCandidateResponse,
+    responses={
+        200: {
+            "description": "AI analysis generated successfully",
+            "model": AnalyzeCandidateResponse
+        },
+        400: {
+            "description": "Invalid input",
+            "model": ErrorResponse
+        },
+        500: {
+            "description": "Internal server error",
+            "model": ErrorResponse
+        }
+    },
+    summary="Generate AI analysis for a single drug candidate",
+    description="""
+    Generate AI-powered analysis for a single drug candidate on-demand.
+    
+    This endpoint allows lazy loading of AI analysis when a user views
+    a specific candidate, rather than generating analysis for all candidates
+    upfront during the discovery process.
+    
+    The analysis includes:
+    - Molecular property interpretation
+    - Binding affinity assessment
+    - Drug-likeness evaluation
+    - Safety profile analysis
+    - Mechanism of action insights
+    """
+)
+async def analyze_candidate(request: AnalyzeCandidateRequest) -> AnalyzeCandidateResponse:
+    """Generate AI analysis for a single drug candidate.
+    
+    Args:
+        request: AnalyzeCandidateRequest with molecule, target, properties, and toxicity
+    
+    Returns:
+        AnalyzeCandidateResponse with AI analysis text
+    """
+    try:
+        # Create BioMistral engine instance
+        biomistral = BioMistralEngine()
+        
+        try:
+            # Generate AI analysis
+            analysis = await biomistral.analyze_candidate(
+                request.molecule,
+                request.target,
+                request.properties,
+                request.toxicity
+            )
+            
+            if analysis:
+                return AnalyzeCandidateResponse(
+                    ai_analysis=analysis,
+                    success=True,
+                    message="AI analysis generated successfully"
+                )
+            else:
+                return AnalyzeCandidateResponse(
+                    ai_analysis=None,
+                    success=False,
+                    message="AI analysis unavailable - service may be offline"
+                )
+        finally:
+            await biomistral.close()
+        
+    except Exception as e:
+        logger.error(f"AI analysis error: {str(e)}", exc_info=True)
+        return AnalyzeCandidateResponse(
+            ai_analysis=None,
+            success=False,
+            message=f"AI analysis failed: {str(e)}"
         )
 
 
