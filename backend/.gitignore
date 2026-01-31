@@ -1,8 +1,3 @@
-# Environment Variables
-.env
-.env.local
-*env
-
 # Python
 __pycache__/
 *.py[cod]
@@ -31,6 +26,10 @@ env/
 ENV/
 .venv
 
+# Environment Variables
+.env
+.env.local
+
 # IDE
 .vscode/
 .idea/
@@ -54,9 +53,3 @@ Thumbs.db
 
 # Redis
 dump.rdb
-
-# Node (for future frontend)
-node_modules/
-.next/
-out/
-.vercel
