@@ -325,8 +325,9 @@ async def discover_drugs(request: DiscoveryRequest) -> DiscoveryResponse:
         # Run the discovery pipeline
         result = await pipeline.discover_drugs(sanitized_disease_name)
         
-        # Format scores to 2 decimal places
-        for candidate in result.candidates:
+        # Format scores to 2 decimal places and limit to top 20
+        top_candidates = result.candidates[:20]
+        for candidate in top_candidates:
             candidate.binding_affinity_score = round(candidate.binding_affinity_score, 2)
             candidate.binding_confidence = round(candidate.binding_confidence, 2)
             candidate.composite_score = round(candidate.composite_score, 2)
@@ -340,7 +341,7 @@ async def discover_drugs(request: DiscoveryRequest) -> DiscoveryResponse:
             query=result.query,
             timestamp=result.timestamp.isoformat(),
             processing_time_seconds=round(result.processing_time_seconds, 2),
-            candidates=result.candidates,
+            candidates=top_candidates,
             metadata={
                 "targets_found": result.targets_found,
                 "molecules_analyzed": result.molecules_analyzed,

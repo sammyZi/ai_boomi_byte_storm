@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Maximize2, Minimize2, Beaker } from 'lucide-react';
 
 interface MoleculeViewer3DProps {
@@ -10,61 +10,100 @@ interface MoleculeViewer3DProps {
 
 export default function MoleculeViewer3D({ smiles, moleculeName }: MoleculeViewer3DProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [viewerHtml, setViewerHtml] = useState('');
 
-  // Use PubChem's 3D viewer which is more reliable for small molecules
-  // Encode SMILES for URL
-  const encodedSmiles = encodeURIComponent(smiles);
-  
-  // Use 3Dmol.js with inline SMILES
-  const viewer3DUrl = `https://3dmol.csb.pitt.edu/viewer.html?cid=${encodedSmiles}&style=stick:colorscheme~Jmol&surface=opacity:0.7;color:white`;
+  useEffect(() => {
+    // Create a simple 3Dmol.js viewer HTML
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
+  <style>
+    body { margin: 0; padding: 0; overflow: hidden; }
+    #viewer { width: 100%; height: 100vh; position: relative; }
+  </style>
+</head>
+<body>
+  <div id="viewer"></div>
+  <script>
+    let viewer = $3Dmol.createViewer("viewer", {
+      backgroundColor: 'white'
+    });
+    
+    // Add molecule from SMILES
+    $3Dmol.get('https://cactus.nci.nih.gov/chemical/structure/${encodeURIComponent(smiles)}/sdf', function(data) {
+      viewer.addModel(data, "sdf");
+      viewer.setStyle({}, {stick: {colorscheme: 'Jmol'}});
+      viewer.addSurface($3Dmol.SurfaceType.VDW, {opacity: 0.7, color: 'lightblue'});
+      viewer.zoomTo();
+      viewer.render();
+      viewer.zoom(1.2, 1000);
+    });
+  </script>
+</body>
+</html>`;
+    
+    setViewerHtml(html);
+  }, [smiles]);
 
   return (
-    <div className="bg-purple-50 rounded-xl p-6 border-2 border-purple-200 shadow-md">
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-          <div className="w-2 h-2 bg-purple-600 rounded-full animate-pulse"></div>
-          3D Molecule Structure
-        </h4>
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="p-2 text-gray-700 hover:text-purple-600 hover:bg-white rounded-lg transition-all"
-          aria-label={isExpanded ? 'Minimize' : 'Maximize'}
-        >
-          {isExpanded ? (
-            <Minimize2 className="w-5 h-5" />
-          ) : (
-            <Maximize2 className="w-5 h-5" />
-          )}
-        </button>
-      </div>
-
-      <div className="mb-3 text-sm text-gray-700 bg-white/80 px-4 py-2 rounded-lg">
-        <span className="font-semibold">{moleculeName}</span>
-      </div>
-
+    <div className="space-y-3">
       {/* 3D Viewer Container */}
       <div
-        className={`relative bg-white rounded-xl overflow-hidden border-2 border-gray-200 shadow-inner transition-all duration-300 ${
+        className={`relative bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg overflow-hidden border border-gray-200 shadow-sm transition-all duration-300 ${
           isExpanded ? 'h-[500px]' : 'h-[350px]'
         }`}
       >
-        <iframe
-          src={viewer3DUrl}
-          className="w-full h-full border-0"
-          title={`3D structure of ${moleculeName}`}
-          allow="fullscreen"
-          sandbox="allow-scripts allow-same-origin"
-        />
+        {viewerHtml ? (
+          <iframe
+            srcDoc={viewerHtml}
+            className="w-full h-full border-0"
+            title={`3D structure of ${moleculeName}`}
+            sandbox="allow-scripts allow-same-origin"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="text-center text-gray-500">
+              <Beaker className="w-8 h-8 mx-auto mb-2 animate-pulse" />
+              <p className="text-sm">Loading 3D structure...</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Helper overlay */}
+        <div className="absolute top-2 left-2 pointer-events-none z-10">
+          <div className="bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] text-gray-500 border border-gray-200 shadow-sm">
+            3Dmol.js Viewer
+          </div>
+        </div>
       </div>
 
-      <div className="mt-4 text-xs text-gray-600 bg-white/80 px-4 py-3 rounded-lg">
-        <p className="font-medium flex items-center gap-2">
-          <Beaker className="w-4 h-4" />
-          Interactive 3D drug molecule viewer
-        </p>
-        <p className="mt-1">
-          🖱️ Drag to rotate • Scroll to zoom • Stick representation with surface
-        </p>
+      {/* Controls */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-xs text-gray-600">
+          <p className="font-medium flex items-center gap-1.5">
+            <Beaker className="w-3.5 h-3.5" />
+            Interactive 3D molecule
+          </p>
+        </div>
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="p-1.5 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all text-xs flex items-center gap-1"
+          aria-label={isExpanded ? 'Minimize' : 'Maximize'}
+        >
+          {isExpanded ? (
+            <>
+              <Minimize2 className="w-3.5 h-3.5" />
+              <span>Minimize</span>
+            </>
+          ) : (
+            <>
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span>Expand</span>
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
