@@ -274,6 +274,16 @@ class DiscoveryResponse(BaseModel):
         default_factory=list,
         description="Warnings about partial failures or low confidence"
     )
+    disclaimer: str = Field(
+        default=(
+            "MEDICAL DISCLAIMER: This platform is for research and educational purposes only. "
+            "The information provided is not intended to diagnose, treat, cure, or prevent any disease. "
+            "Results are computational predictions and have not been validated through clinical trials. "
+            "Always consult qualified healthcare professionals before making any medical decisions. "
+            "Do not use this information as a substitute for professional medical advice."
+        ),
+        description="Medical disclaimer for research use only"
+    )
 
 
 class ErrorResponse(BaseModel):
