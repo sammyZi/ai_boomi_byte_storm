@@ -1,0 +1,4 @@
+# file: D:\ai_boomi\backend\config\settings.py
+# hypothesis_version: 6.151.4
+
+[100, 8000, 86400, ',', '.env', '0.0.0.0', 'INFO', 'biomistral:7b', 'ignore', 'utf-8']
