@@ -1,0 +1,4 @@
+# file: D:\ai_boomi\backend\app\biomistral_engine.py
+# hypothesis_version: 6.151.4
+
+[0.3, 500, 'model', 'num_predict', 'options', 'prompt', 'response', 'stream', 'temperature']
