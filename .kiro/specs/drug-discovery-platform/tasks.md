@@ -517,8 +517,10 @@ This implementation plan focuses on building the backend drug discovery platform
   - Ensure all backend requirements are met
   - Ask the user if questions arise.
 
-- [ ]* 21. Optional: Implement Next.js frontend application
-  - [ ]* 21.1 Set up Next.js 14 project with TypeScript and Tailwind
+- [x] 21. Optional: Implement Next.js frontend application
+
+  - [x] 21.1 Set up Next.js 14 project with TypeScript and Tailwind
+
     - Initialize Next.js 14 project with TypeScript
     - Configure Tailwind CSS with custom theme
     - Set up project structure: components/, pages/, lib/, hooks/, types/
@@ -527,102 +529,123 @@ This implementation plan focuses on building the backend drug discovery platform
     - Install dependencies: axios, react-query, zustand (state management)
     - _Requirements: 13.6_
   
-  - [ ]* 21.2 Create core types and interfaces
+  - [x] 21.2 Create core types and interfaces
+
     - Define TypeScript interfaces for API responses
     - Create types for DrugCandidate, Target, MolecularProperties
     - Create types for ToxicityAssessment, DiscoveryResult
     - _Requirements: 15.1, 15.2_
   
-  - [ ]* 21.3 Implement API client service
-    - [ ]* 21.3.1 Create base API client with axios
+  - [x] 21.3 Implement API client service
+
+    - [x] 21.3.1 Create base API client with axios
+
       - Configure base URL from environment variables
       - Implement request/response interceptors
       - Add error handling and retry logic
       - _Requirements: 13.6_
     
-    - [ ]* 21.3.2 Implement discovery API methods
+    - [x] 21.3.2 Implement discovery API methods
+
       - Create discoverDrugs() method
       - Handle loading states
       - Handle error responses
       - _Requirements: 15.1, 15.5, 15.6_
     
-    - [ ]* 21.3.3 Write unit tests for API client
+    - [x] 21.3.3 Write unit tests for API client
+
       - Test successful requests
       - Test error handling
       - Test retry logic
       - _Requirements: 13.6_
   
-  - [ ]* 21.4 Create custom React hooks
-    - [ ]* 21.4.1 Create useDiscovery hook
+  - [x] 21.4 Create custom React hooks
+
+    - [x] 21.4.1 Create useDiscovery hook
+
       - Implement disease search with react-query
       - Handle loading, error, and success states
       - Implement caching and refetching
       - _Requirements: 8.1_
     
-    - [ ]* 21.4.2 Create useExport hook
+    - [x] 21.4.2 Create useExport hook
+
       - Implement JSON export functionality
       - Implement CSV export functionality
       - Handle download triggers
       - _Requirements: 8.10_
     
-    - [ ]* 21.4.3 Write unit tests for hooks
+    - [x] 21.4.3 Write unit tests for hooks
+
       - Test useDiscovery states and transitions
       - Test useExport functionality
       - _Requirements: 8.1, 8.10_
   
-  - [ ]* 21.5 Implement layout and navigation components
-    - [ ]* 21.5.1 Create main layout component
+  - [x] 21.5 Implement layout and navigation components
+
+    - [x] 21.5.1 Create main layout component
+
       - Implement responsive header with logo
       - Add navigation menu
       - Create footer with links
       - _Requirements: 8.1_
     
-    - [ ]* 21.5.2 Create medical disclaimer component
+    - [x] 21.5.2 Create medical disclaimer component
+
       - Display prominent disclaimer banner
       - Add "Research purposes only" warning
       - Make dismissible with localStorage persistence
       - _Requirements: 12.7_
     
-    - [ ]* 21.5.3 Write unit tests for layout components
+    - [x] 21.5.3 Write unit tests for layout components
+
       - Test responsive behavior
       - Test disclaimer display and dismissal
       - _Requirements: 12.7_
   
-  - [ ]* 21.6 Implement search interface
-    - [ ]* 21.6.1 Create SearchBar component
+  - [x] 21.6 Implement search interface
+
+    - [x] 21.6.1 Create SearchBar component
+
       - Implement text input with validation (2-200 chars)
       - Add real-time validation feedback
       - Style with Tailwind CSS
       - _Requirements: 8.1, 12.5_
     
-    - [ ]* 21.6.2 Add autocomplete functionality
+    - [x] 21.6.2 Add autocomplete functionality
+
       - Implement dropdown with common diseases
       - Add keyboard navigation (arrow keys, enter)
       - Highlight matching text
       - _Requirements: 8.1_
     
-    - [ ]* 21.6.3 Create LoadingIndicator component
+    - [x] 21.6.3 Create LoadingIndicator component
+
       - Display progress spinner
       - Show estimated time (8-10s)
       - Add progress bar animation
       - Show current pipeline stage (optional)
       - _Requirements: 8.1_
     
-    - [ ]* 21.6.4 Write unit tests for search interface
+    - [x] 21.6.4 Write unit tests for search interface
+
       - Test input validation
       - Test autocomplete behavior
       - Test loading states
       - _Requirements: 8.1, 12.5_
   
-  - [ ]* 21.7 Implement results display components
-    - [ ]* 21.7.1 Create ResultsHeader component
+  - [x] 21.7 Implement results display components
+
+    - [x] 21.7.1 Create ResultsHeader component
+
       - Display query information
       - Show total candidates found
       - Display processing time
       - Add export buttons (JSON, CSV)
       - _Requirements: 8.1, 8.2, 8.10_
     
-    - [ ]* 21.7.2 Create CandidateCard component
+    - [x] 21.7.2 Create CandidateCard component
+
       - Display molecule name and ChEMBL ID
       - Show composite score with visual indicator
       - Display rank badge
@@ -630,28 +653,33 @@ This implementation plan focuses on building the backend drug discovery platform
       - Add expand/collapse functionality
       - _Requirements: 8.2, 8.3, 8.4, 8.5_
     
-    - [ ]* 21.7.3 Create ScoreDisplay component
+    - [x] 21.7.3 Create ScoreDisplay component
+
       - Visualize binding affinity score
       - Show drug-likeness score with Lipinski violations
       - Display toxicity score with risk level
       - Use progress bars or radial charts
       - _Requirements: 8.3, 8.4, 8.5_
     
-    - [ ]* 21.7.4 Create CandidateList component
+    - [x] 21.7.4 Create CandidateList component
+
       - Render ranked list of CandidateCard components
       - Implement virtualization for large lists (react-window)
       - Add sorting options (score, name, risk)
       - Add filtering by risk level
       - _Requirements: 8.1, 8.2_
     
-    - [ ]* 21.7.5 Write unit tests for results components
+    - [x] 21.7.5 Write unit tests for results components
+
       - Test CandidateCard rendering
       - Test expand/collapse behavior
       - Test sorting and filtering
       - _Requirements: 8.1, 8.2_
   
-  - [ ]* 21.8 Implement candidate detail view
-    - [ ]* 21.8.1 Create DetailPanel component
+  - [x] 21.8 Implement candidate detail view
+
+    - [x] 21.8.1 Create DetailPanel component
+
       - Display all molecular properties in organized sections
       - Show target information with confidence scores
       - Display binding affinity details
@@ -659,35 +687,41 @@ This implementation plan focuses on building the backend drug discovery platform
       - List detected toxicophores with warnings
       - _Requirements: 8.3, 8.4, 8.5, 8.6, 8.7_
     
-    - [ ]* 21.8.2 Create AIAnalysisSection component
+    - [x] 21.8.2 Create AIAnalysisSection component
+
       - Display AI-generated analysis text
       - Format with proper typography
       - Add copy-to-clipboard functionality
       - Handle missing analysis gracefully
       - _Requirements: 8.6_
     
-    - [ ]* 21.8.3 Create PropertiesTable component
+    - [x] 21.8.3 Create PropertiesTable component
+
       - Display molecular properties in table format
       - Show MW, LogP, HBD, HBA, TPSA, rotatable bonds, aromatic rings
       - Highlight values that violate Lipinski rules
       - Add tooltips for property explanations
       - _Requirements: 8.7_
     
-    - [ ]* 21.8.4 Write unit tests for detail components
+    - [x] 21.8.4 Write unit tests for detail components
+
       - Test property display
       - Test AI analysis rendering
       - Test missing data handling
       - _Requirements: 8.3, 8.4, 8.5, 8.6, 8.7_
   
-  - [ ]* 21.9 Implement molecular structure visualization
-    - [ ]* 21.9.1 Create MoleculeViewer2D component
+  - [x] 21.9 Implement molecular structure visualization
+
+    - [x] 21.9.1 Create MoleculeViewer2D component
+
       - Render 2D SVG structures from backend
       - Add zoom and pan controls
       - Implement download structure functionality
       - Handle missing structures gracefully
       - _Requirements: 8.8_
     
-    - [ ]* 21.9.2 Create ProteinViewer3D component
+    - [x] 21.9.2 Create ProteinViewer3D component
+
       - Integrate 3D viewer library (NGL Viewer or Mol*)
       - Load PDB structures from backend
       - Add rotation, zoom, and pan controls
@@ -696,79 +730,94 @@ This implementation plan focuses on building the backend drug discovery platform
       - Handle missing structures gracefully
       - _Requirements: 8.9_
     
-    - [ ]* 21.9.3 Write unit tests for visualization components
+    - [x] 21.9.3 Write unit tests for visualization components
+
       - Test 2D structure rendering
       - Test 3D viewer initialization
       - Test missing structure handling
       - _Requirements: 8.8, 8.9_
   
-  - [ ]* 21.10 Implement export functionality
-    - [ ]* 21.10.1 Create ExportButton component
+  - [x] 21.10 Implement export functionality
+
+    - [x] 21.10.1 Create ExportButton component
+
       - Add JSON export button
       - Add CSV export button
       - Show export progress indicator
       - Handle export errors
       - _Requirements: 8.10_
     
-    - [ ]* 21.10.2 Implement JSON export logic
+    - [x] 21.10.2 Implement JSON export logic
+
       - Serialize complete discovery result
       - Format with proper indentation
       - Trigger browser download
       - _Requirements: 8.10_
     
-    - [ ]* 21.10.3 Implement CSV export logic
+    - [x] 21.10.3 Implement CSV export logic
+
       - Convert candidates to CSV format
       - Include all relevant fields
       - Handle special characters and escaping
       - Trigger browser download
       - _Requirements: 8.10_
     
-    - [ ]* 21.10.4 Write property test for JSON export
+    - [x] 21.10.4 Write property test for JSON export
+
       - **Property 22: JSON Export Round-Trip**
       - **Validates: Requirements 8.10**
     
-    - [ ]* 21.10.5 Write unit tests for export functionality
+    - [x] 21.10.5 Write unit tests for export functionality
+
       - Test JSON export format
       - Test CSV export format
       - Test download triggers
       - _Requirements: 8.10_
   
-  - [ ]* 21.11 Implement error handling and edge cases
-    - [ ]* 21.11.1 Create ErrorBoundary component
+  - [x] 21.11 Implement error handling and edge cases
+
+    - [x] 21.11.1 Create ErrorBoundary component
+
       - Catch React errors
       - Display user-friendly error messages
       - Add retry functionality
       - Log errors for debugging
       - _Requirements: 10.6_
     
-    - [ ]* 21.11.2 Create ErrorMessage component
+    - [x] 21.11.2 Create ErrorMessage component
+
       - Display API errors
       - Show validation errors
       - Display network errors
       - Add retry button
       - _Requirements: 10.6, 15.5_
     
-    - [ ]* 21.11.3 Create EmptyState component
+    - [x] 21.11.3 Create EmptyState component
+
       - Display when no results found
       - Show helpful suggestions
       - Add search again button
       - _Requirements: 8.1_
     
-    - [ ]* 21.11.4 Write unit tests for error handling
+    - [x] 21.11.4 Write unit tests for error handling
+
       - Test ErrorBoundary behavior
       - Test error message display
       - Test empty state rendering
       - _Requirements: 10.6, 15.5_
   
-  - [ ]* 21.12 Implement responsive design and accessibility
-    - [ ]* 21.12.1 Add responsive breakpoints
+  - [x] 21.12 Implement responsive design and accessibility
+
+    - [x] 21.12.1 Add responsive breakpoints
+
       - Optimize layout for mobile (< 640px)
       - Optimize layout for tablet (640px - 1024px)
       - Optimize layout for desktop (> 1024px)
       - Test on multiple devices
       - _Requirements: 8.1_
     
-    - [ ]* 21.12.2 Implement accessibility features
+    - [x] 21.12.2 Implement accessibility features
+
       - Add ARIA labels to all interactive elements
       - Ensure keyboard navigation works
       - Add focus indicators
@@ -776,102 +825,122 @@ This implementation plan focuses on building the backend drug discovery platform
       - Ensure color contrast meets WCAG AA standards
       - _Requirements: 8.1_
     
-    - [ ]* 21.12.3 Write accessibility tests
+    - [x] 21.12.3 Write accessibility tests
+
       - Test keyboard navigation
       - Test ARIA labels
       - Test color contrast
       - _Requirements: 8.1_
   
-  - [ ]* 21.13 Create main pages
-    - [ ]* 21.13.1 Create home page (/)
+  - [x] 21.13 Create main pages
+
+    - [x] 21.13.1 Create home page (/)
+
       - Add hero section with description
       - Embed SearchBar component
       - Show example searches
       - Display features overview
       - _Requirements: 8.1_
     
-    - [ ]* 21.13.2 Create results page (/results)
+    - [x] 21.13.2 Create results page (/results)
+
       - Display ResultsHeader
       - Show CandidateList
       - Handle loading and error states
       - Implement URL state management (query params)
       - _Requirements: 8.1, 8.2_
     
-    - [ ]* 21.13.3 Create about page (/about)
+    - [x] 21.13.3 Create about page (/about)
+
       - Explain platform purpose
       - Describe methodology
       - List data sources
       - Add contact information
       - _Requirements: 12.7_
     
-    - [ ]* 21.13.4 Write unit tests for pages
+    - [x] 21.13.4 Write unit tests for pages
+
       - Test page rendering
       - Test navigation
       - Test URL state management
       - _Requirements: 8.1, 8.2_
   
-  - [ ]* 21.14 Implement state management
-    - [ ]* 21.14.1 Create global state store (Zustand)
+  - [x] 21.14 Implement state management
+
+    - [x] 21.14.1 Create global state store (Zustand)
+
       - Store current search query
       - Store discovery results
       - Store UI preferences (theme, disclaimer dismissed)
       - Implement persistence to localStorage
       - _Requirements: 8.1_
     
-    - [ ]* 21.14.2 Write unit tests for state management
+    - [x] 21.14.2 Write unit tests for state management
+
       - Test state updates
       - Test persistence
       - Test state reset
       - _Requirements: 8.1_
   
-  - [ ]* 21.15 Add performance optimizations
-    - [ ]* 21.15.1 Implement code splitting
+  - [x] 21.15 Add performance optimizations
+
+    - [x] 21.15.1 Implement code splitting
+
       - Split routes with dynamic imports
       - Lazy load heavy components (3D viewer)
       - Add loading fallbacks
       - _Requirements: 8.9_
     
-    - [ ]* 21.15.2 Optimize images and assets
+    - [x] 21.15.2 Optimize images and assets
+
       - Use Next.js Image component
       - Compress images
       - Add loading placeholders
       - _Requirements: 8.1_
     
-    - [ ]* 21.15.3 Implement caching strategies
+    - [x] 21.15.3 Implement caching strategies
+
       - Configure react-query cache times
       - Add stale-while-revalidate
       - Implement optimistic updates
       - _Requirements: 9.6_
   
-  - [ ]* 21.16 Frontend integration testing
-    - [ ]* 21.16.1 Write end-to-end tests with Playwright
+  - [x] 21.16 Frontend integration testing
+
+    - [x] 21.16.1 Write end-to-end tests with Playwright
+
       - Test complete search flow
       - Test results display and interaction
       - Test export functionality
       - Test error scenarios
       - _Requirements: 8.1, 8.2, 8.10_
     
-    - [ ]* 21.16.2 Write integration tests for API client
+    - [x] 21.16.2 Write integration tests for API client
+
       - Test with mock backend
       - Test error handling
       - Test retry logic
       - _Requirements: 13.6, 15.5_
   
-  - [ ]* 21.17 Frontend documentation
-    - [ ]* 21.17.1 Create frontend README
+  - [x] 21.17 Frontend documentation
+
+    - [x] 21.17.1 Create frontend README
+
       - Document setup instructions
       - Document environment variables
       - Document component structure
       - Add development guidelines
       - _Requirements: 13.6_
     
-    - [ ]* 21.17.2 Add component documentation
+    - [x] 21.17.2 Add component documentation
+
       - Document props for all components
       - Add usage examples
       - Document custom hooks
       - _Requirements: 8.1, 8.2_
   
-  - [ ]* 21.18 Final frontend checkpoint
+  - [x] 21.18 Final frontend checkpoint
+
     - Run all frontend tests
     - Verify responsive design on multiple devices
     - Test accessibility with screen readers
