@@ -147,32 +147,32 @@ This implementation plan focuses on building the backend drug discovery platform
     - Test Redis connection failures
     - _Requirements: 9.2, 9.3, 9.4, 9.5, 9.6_
 
-- [ ] 6. Implement Open Targets API client
-  - [ ] 6.1 Create OpenTargetsClient class
+- [x] 6. Implement Open Targets API client
+  - [x] 6.1 Create OpenTargetsClient class
     - Implement get_disease_targets() method
     - Parse API responses into Target objects
     - _Requirements: 1.1, 1.2_
   
-  - [ ] 6.2 Implement retry logic with exponential backoff
+  - [x] 6.2 Implement retry logic with exponential backoff
     - Retry up to 3 times with delays: 1s, 2s, 4s
     - Handle all retry attempts failing
     - _Requirements: 1.6, 1.7_
   
-  - [ ] 6.3 Write property test for retry logic
+  - [x] 6.3 Write property test for retry logic
     - **Property 2: Retry with Exponential Backoff**
     - **Validates: Requirements 1.6**
   
-  - [ ] 6.4 Implement target filtering and ranking
+  - [x] 6.4 Implement target filtering and ranking
     - Filter targets with confidence >= 0.5
     - Sort by confidence descending
     - Limit to top 10 targets
     - _Requirements: 1.3, 1.4, 1.5_
   
-  - [ ] 6.5 Write property test for target filtering
+  - [x] 6.5 Write property test for target filtering
     - **Property 1: Target Filtering and Ranking**
     - **Validates: Requirements 1.3, 1.4, 1.5**
   
-  - [ ] 6.6 Write unit tests for Open Targets client
+  - [x] 6.6 Write unit tests for Open Targets client
     - Test with sample API responses
     - Test error handling
     - _Requirements: 1.1, 1.2, 1.6, 1.7_
