@@ -106,8 +106,8 @@ This implementation plan adds molecular docking capabilities to the drug discove
   - All 112 tests passing (54 PDBQT + 30 grid calculator + 28 config generator)
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 8. Implement AutoDock Vina Executor
-  - [ ] 8.1 Create VinaExecutor class
+- [x] 8. Implement AutoDock Vina Executor
+  - [x] 8.1 Create VinaExecutor class
     - Execute AutoDock Vina subprocess with configuration file
     - Capture stdout and stderr output
     - Parse Vina output to extract binding affinity scores
@@ -116,8 +116,8 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Handle execution errors and return detailed error messages
     - _Requirements: 6.1, 6.5, 6.6, 6.7, 12.4, 12.5_
 
-  - [ ] 8.2 Write unit tests for Vina executor
-    - Test successful execution with sample files
+  - [x] 8.2 Write unit tests for Vina executor
+    - 32 tests covering init, path discovery, sync/async execution, timeout, errors, output parsing
     - Test timeout handling
     - Test error handling (invalid files, Vina not installed)
     - Test output parsing
