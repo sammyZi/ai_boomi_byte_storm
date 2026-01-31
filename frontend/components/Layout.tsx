@@ -29,8 +29,8 @@ export default function Layout({ children }: LayoutProps) {
               </span>
             </Link>
 
-            {/* Navigation Links - Centered */}
-            <div className="flex items-center gap-6">
+            {/* Navigation Links - Slightly Right of Center */}
+            <div className="flex items-center gap-6 ml-32">
               <Link
                 href="/"
                 className="text-base font-medium text-blue-600 hover:text-blue-700 transition-colors"
