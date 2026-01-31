@@ -1,0 +1,4 @@
+# file: D:\ai_boomi\backend\app\open_targets_client.py
+# hypothesis_version: 6.151.4
+
+[0.0, 0.5, 1.0, 2.0, 4.0, 30.0, '/graphql', 'POST', 'approvedName', 'approvedSymbol', 'associatedTargets', 'data', 'disease', 'diseaseId', 'hits', 'id', 'query', 'queryString', 'rows', 'score', 'search', 'target', 'variables']

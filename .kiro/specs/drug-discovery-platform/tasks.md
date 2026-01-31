@@ -245,52 +245,52 @@ This implementation plan focuses on building the backend drug discovery platform
     - Test SMILES validation
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-- [ ] 9. Checkpoint - Ensure API client tests pass
+- [x] 9. Checkpoint - Ensure API client tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 10. Implement scoring and ranking engine
-  - [ ] 10.1 Create ScoringEngine class
+- [x] 10. Implement scoring and ranking engine
+  - [x] 10.1 Create ScoringEngine class
     - Implement binding affinity normalization
     - Formula: (pChEMBL - 4) / (10 - 4), clamped to [0, 1]
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
   
-  - [ ] 10.2 Write property test for binding affinity normalization
+  - [x] 10.2 Write property test for binding affinity normalization
     - **Property 9: Binding Affinity Normalization**
     - **Validates: Requirements 4.1, 4.2**
   
-  - [ ] 10.3 Implement maximum activity selection
+  - [x] 10.3 Implement maximum activity selection
     - Use highest pChEMBL for molecule-target pairs
     - _Requirements: 4.5_
   
-  - [ ] 10.4 Write property test for maximum activity
+  - [x] 10.4 Write property test for maximum activity
     - **Property 10: Maximum Activity Selection**
     - **Validates: Requirements 4.5**
   
-  - [ ] 10.5 Implement measurement type confidence mapping
+  - [x] 10.5 Implement measurement type confidence mapping
     - Ki/Kd → 0.9, IC50/EC50 → 0.8, other → 0.6
     - _Requirements: 4.6_
   
-  - [ ] 10.6 Write property test for confidence mapping
+  - [x] 10.6 Write property test for confidence mapping
     - **Property 11: Measurement Type Confidence Mapping**
     - **Validates: Requirements 4.6**
   
-  - [ ] 10.7 Implement composite score calculation
+  - [x] 10.7 Implement composite score calculation
     - Formula: 0.40×binding + 0.30×drug_likeness + 0.20×(1-toxicity) + 0.10×novelty
     - _Requirements: 7.8_
   
-  - [ ] 10.8 Write property test for composite scoring
+  - [x] 10.8 Write property test for composite scoring
     - **Property 19: Composite Score Calculation**
     - **Validates: Requirements 7.8**
   
-  - [ ] 10.9 Implement candidate ranking
+  - [x] 10.9 Implement candidate ranking
     - Sort candidates by composite score descending
     - _Requirements: 7.9_
   
-  - [ ] 10.10 Write property test for ranking
+  - [x] 10.10 Write property test for ranking
     - **Property 20: Candidate Ranking**
     - **Validates: Requirements 7.9**
   
-  - [ ] 10.11 Write unit tests for scoring engine
+  - [x] 10.11 Write unit tests for scoring engine
     - Test edge cases (all zeros, all ones)
     - Test specific score combinations
     - _Requirements: 4.1, 4.2, 4.5, 4.6, 7.8, 7.9_
