@@ -1,5 +1,11 @@
 import apiClient from './api-client';
-import { DiscoveryRequest, DiscoveryResponse } from '@/types';
+import { DiscoveryRequest, DiscoveryResponse, DrugCandidate } from '@/types';
+
+export interface AnalyzeCandidateResponse {
+  ai_analysis: string | null;
+  success: boolean;
+  message: string;
+}
 
 export class DiscoveryAPI {
   /**
@@ -13,6 +19,23 @@ export class DiscoveryAPI {
     };
 
     const response = await apiClient.post<DiscoveryResponse>('/api/discover', request);
+    return response.data;
+  }
+
+  /**
+   * Generate AI analysis for a single drug candidate on-demand
+   * @param candidate - The drug candidate to analyze
+   * @returns Promise with AI analysis response
+   */
+  static async analyzeCandidate(candidate: DrugCandidate): Promise<AnalyzeCandidateResponse> {
+    const request = {
+      molecule: candidate.molecule,
+      target: candidate.target,
+      properties: candidate.properties,
+      toxicity: candidate.toxicity,
+    };
+
+    const response = await apiClient.post<AnalyzeCandidateResponse>('/api/analyze-candidate', request);
     return response.data;
   }
 

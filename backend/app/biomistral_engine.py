@@ -77,6 +77,10 @@ class BioMistralEngine:
                 timeout=self.timeout
             )
             
+            # Validate the response is a proper analysis
+            if not self._is_valid_analysis(response, molecule.name):
+                return None
+            
             return response
             
         except asyncio.TimeoutError:
@@ -85,6 +89,63 @@ class BioMistralEngine:
         except Exception:
             # Graceful degradation on any error
             return None
+    
+    def _is_valid_analysis(self, response: str, molecule_name: str) -> bool:
+        """Validate that the AI response is a proper drug candidate analysis.
+        
+        Detects generic/unhelpful responses like greetings or irrelevant text.
+        
+        Args:
+            response: The AI-generated response text
+            molecule_name: Name of the molecule being analyzed
+        
+        Returns:
+            True if response appears to be a valid analysis, False otherwise
+        """
+        if not response or len(response.strip()) < 50:
+            return False
+        
+        response_lower = response.lower()
+        
+        # List of phrases that indicate a generic/unhelpful response
+        invalid_phrases = [
+            "good evening",
+            "good morning", 
+            "good afternoon",
+            "how can i assist",
+            "how can i help",
+            "hello",
+            "hi there",
+            "what can i do for you",
+            "i'm here to help",
+            "i am here to help",
+            "please provide",
+            "could you provide",
+            "i need more information",
+            "can you tell me more",
+            "what would you like",
+            "i don't have enough information",
+            "i cannot provide",
+            "as an ai",
+            "as a language model",
+        ]
+        
+        for phrase in invalid_phrases:
+            if phrase in response_lower:
+                return False
+        
+        # Check that the response contains some relevant content
+        # It should mention at least one of these drug-related terms
+        relevant_terms = [
+            "binding", "affinity", "molecule", "drug", "target", "protein",
+            "lipinski", "toxicity", "risk", "molecular", "weight", "logp",
+            "therapeutic", "treatment", "efficacy", "safety", "pharmacokinetic",
+            "bioavailability", "solubility", "metabolism", molecule_name.lower()
+        ]
+        
+        has_relevant_content = any(term in response_lower for term in relevant_terms)
+        
+        return has_relevant_content
     
     def _generate_prompt(
         self,
@@ -107,50 +168,22 @@ class BioMistralEngine:
         Returns:
             Formatted prompt string
         """
-        prompt = f"""Analyze this drug candidate for {target.disease_association}:
+        prompt = f"""Analyze the following drug candidate:
 
-MOLECULE INFORMATION:
-- Name: {molecule.name}
-- ChEMBL ID: {molecule.chembl_id}
-- SMILES: {molecule.smiles}
+Molecule: {molecule.name} ({molecule.chembl_id})
+Target: {target.protein_name} ({target.gene_symbol})
+Disease: {target.disease_association}
 
-TARGET INFORMATION:
-- Protein: {target.protein_name} ({target.gene_symbol})
-- UniProt ID: {target.uniprot_id}
-- Disease Association: {target.disease_association}
-- Confidence: {target.confidence_score:.2f}
-
-BINDING AFFINITY:
-- pChEMBL Value: {molecule.pchembl_value:.2f}
-- Activity Type: {molecule.activity_type}
-
-MOLECULAR PROPERTIES:
+Key Data:
+- Binding Affinity (pChEMBL): {molecule.pchembl_value:.2f}
 - Molecular Weight: {properties.molecular_weight:.2f} Da
 - LogP: {properties.logp:.2f}
-- H-Bond Donors: {properties.hbd}
-- H-Bond Acceptors: {properties.hba}
-- TPSA: {properties.tpsa:.2f} Ų
-- Rotatable Bonds: {properties.rotatable_bonds}
-- Aromatic Rings: {properties.aromatic_rings}
-
-DRUG-LIKENESS:
+- Drug-Likeness (QED): {properties.drug_likeness_score:.2f}
 - Lipinski Violations: {properties.lipinski_violations}
-- Drug-Likeness Score: {properties.drug_likeness_score:.2f}
-
-TOXICITY ASSESSMENT:
+- Toxicity Risk: {toxicity.risk_level}
 - Toxicity Score: {toxicity.toxicity_score:.2f}
-- Risk Level: {toxicity.risk_level}
-- Detected Toxicophores: {', '.join(toxicity.detected_toxicophores) if toxicity.detected_toxicophores else 'None'}
 
-Provide a concise analysis covering:
-1. Molecular properties and their clinical implications
-2. Binding affinity and therapeutic potential
-3. Drug-likeness assessment and bioavailability
-4. Safety profile and toxicity concerns
-5. Mechanism of action for target modulation
-6. Comparison to existing approved drugs if applicable
-
-Keep the analysis under 500 words and focus on actionable insights."""
+Analysis:"""
         
         return prompt
     
@@ -172,9 +205,11 @@ Keep the analysis under 500 words and focus on actionable insights."""
             "model": self.model,
             "prompt": prompt,
             "stream": False,
+            "system": "You are an expert pharmaceutical scientist providing drug candidate analysis. Always provide direct, detailed analysis based on the data given. Never ask for more information.",
             "options": {
-                "temperature": 0.3,  # Focused, deterministic output
-                "num_predict": 500   # Max tokens
+                "temperature": 0.7,  # More creative but still focused
+                "num_predict": 600,  # Max tokens for detailed analysis
+                "top_p": 0.9
             }
         }
         

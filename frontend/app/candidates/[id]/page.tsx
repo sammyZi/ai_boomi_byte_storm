@@ -8,13 +8,15 @@ import LoadingIndicator from '@/components/LoadingIndicator';
 import ErrorMessage from '@/components/ErrorMessage';
 import ProteinViewer3D from '@/components/ProteinViewer3D';
 import MoleculeViewer3D from '@/components/MoleculeViewer3D';
+import DiscoveryAPI from '@/lib/discovery-api';
 import {
     ArrowLeft,
     Dna,
     FlaskConical,
     AlertTriangle,
     Brain,
-    CheckCircle
+    CheckCircle,
+    Loader2
 } from 'lucide-react';
 
 function CandidateDetailsContent() {
@@ -26,6 +28,11 @@ function CandidateDetailsContent() {
 
     const { data, isLoading, isError, error } = useDiscovery(disease || '');
     const [candidate, setCandidate] = useState<DrugCandidate | null>(null);
+    
+    // AI Analysis state
+    const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+    const [isLoadingAiAnalysis, setIsLoadingAiAnalysis] = useState(false);
+    const [aiAnalysisError, setAiAnalysisError] = useState<string | null>(null);
 
     useEffect(() => {
         if (data?.candidates) {
@@ -34,9 +41,38 @@ function CandidateDetailsContent() {
             );
             if (found) {
                 setCandidate(found);
+                // If candidate already has AI analysis from backend, use it
+                if (found.ai_analysis) {
+                    setAiAnalysis(found.ai_analysis);
+                }
             }
         }
     }, [data, id]);
+
+    // Fetch AI analysis on-demand when candidate is loaded
+    useEffect(() => {
+        const fetchAiAnalysis = async () => {
+            if (candidate && !aiAnalysis && !isLoadingAiAnalysis) {
+                setIsLoadingAiAnalysis(true);
+                setAiAnalysisError(null);
+                
+                try {
+                    const response = await DiscoveryAPI.analyzeCandidate(candidate);
+                    if (response.success && response.ai_analysis) {
+                        setAiAnalysis(response.ai_analysis);
+                    } else {
+                        setAiAnalysisError(response.message || 'AI analysis unavailable');
+                    }
+                } catch (err) {
+                    setAiAnalysisError('Failed to generate AI analysis');
+                } finally {
+                    setIsLoadingAiAnalysis(false);
+                }
+            }
+        };
+
+        fetchAiAnalysis();
+    }, [candidate, aiAnalysis, isLoadingAiAnalysis]);
 
     const handleBack = () => {
         if (disease) {
@@ -271,13 +307,39 @@ function CandidateDetailsContent() {
                     <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 border border-blue-100 shadow-lg">
                         <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
                             <Brain className="w-5 h-5 text-purple-600" />
-                            Compound Summary
+                            AI Analysis
                         </h3>
                         <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 max-h-64 overflow-y-auto">
-                            {candidate.ai_analysis ? (
+                            {isLoadingAiAnalysis ? (
+                                <div className="flex flex-col items-center justify-center py-8 space-y-3">
+                                    <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
+                                    <p className="text-sm text-purple-700 font-medium">Generating AI analysis...</p>
+                                    <p className="text-xs text-gray-500">This may take a few moments</p>
+                                </div>
+                            ) : aiAnalysis ? (
                                 <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-line">
-                                    {candidate.ai_analysis}
+                                    {aiAnalysis}
                                 </p>
+                            ) : aiAnalysisError ? (
+                                <div className="text-xs text-gray-600 space-y-2">
+                                    <p className="text-amber-600 font-semibold flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4" />
+                                        {aiAnalysisError}
+                                    </p>
+                                    <p className="font-semibold">
+                                        {candidate.molecule.name} shows {candidate.molecule.pchembl_value >= 7 ? 'strong' : candidate.molecule.pchembl_value >= 6 ? 'moderate' : 'weak'} binding affinity (pChEMBL: {candidate.molecule.pchembl_value.toFixed(1)}) to {candidate.target.gene_symbol}.
+                                    </p>
+                                    <p>
+                                        Drug-likeness score of {candidate.properties.drug_likeness_score.toFixed(2)} with {candidate.properties.lipinski_violations} Lipinski violation{candidate.properties.lipinski_violations !== 1 ? 's' : ''}.
+                                    </p>
+                                    <p>
+                                        Safety profile indicates <span className={`font-bold ${
+                                            candidate.toxicity.risk_level === 'low' ? 'text-green-700' :
+                                            candidate.toxicity.risk_level === 'medium' ? 'text-yellow-700' :
+                                            'text-red-700'
+                                        }`}>{candidate.toxicity.risk_level} risk</span> with toxicity score of {candidate.toxicity.toxicity_score.toFixed(2)}.
+                                    </p>
+                                </div>
                             ) : (
                                 <div className="text-xs text-gray-600 space-y-2">
                                     <p className="font-semibold">
