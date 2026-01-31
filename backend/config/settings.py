@@ -88,6 +88,28 @@ class Settings(BaseSettings):
         description="Environment (development, staging, production)"
     )
     
+    # Molecular Docking Configuration
+    vina_path: str = Field(
+        default="d:/ai_boomi/backend/tools/vina.exe",
+        description="Path to AutoDock Vina executable (auto-detected if empty)"
+    )
+    docking_timeout: int = Field(
+        default=1800,
+        ge=60,
+        le=7200,
+        description="Docking job timeout in seconds (default: 30 minutes)"
+    )
+    docking_max_concurrent: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description="Maximum concurrent docking jobs"
+    )
+    docking_work_dir: str = Field(
+        default="d:/ai_boomi/backend/docking_workdir",
+        description="Working directory for docking files (uses temp if empty)"
+    )
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
