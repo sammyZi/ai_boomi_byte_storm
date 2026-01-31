@@ -6,15 +6,101 @@ middleware, routes, and configuration.
 
 import re
 import time
+import logging
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from config.settings import settings
 from app.models import DiscoveryRequest, DiscoveryResponse, ErrorResponse
 from app.discovery_pipeline import DiscoveryPipeline
 from app.rate_limiter import RateLimiter, RateLimitMiddleware
+from app.security import anonymize_ip, get_client_ip
+
+
+# Configure logging
+logging.basicConfig(
+    level=getattr(logging, settings.log_level),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+
+class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
+    """Middleware to enforce HTTPS in production.
+    
+    Validates: Requirement 12.1
+    """
+    
+    async def dispatch(self, request: Request, call_next):
+        """Redirect HTTP requests to HTTPS in production."""
+        if settings.enforce_https:
+            # Check if request is not HTTPS
+            if request.url.scheme != "https":
+                # Check for X-Forwarded-Proto header (common in reverse proxy setups)
+                forwarded_proto = request.headers.get("X-Forwarded-Proto", "")
+                if forwarded_proto != "https":
+                    # Redirect to HTTPS
+                    url = request.url.replace(scheme="https")
+                    return JSONResponse(
+                        status_code=301,
+                        content={
+                            "error_code": "HTTPS_REQUIRED",
+                            "message": "HTTPS is required for this endpoint",
+                            "redirect_url": str(url)
+                        },
+                        headers={"Location": str(url)}
+                    )
+        
+        response = await call_next(request)
+        
+        # Add security headers
+        if settings.enforce_https:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        
+        return response
+
+
+class LoggingMiddleware(BaseHTTPMiddleware):
+    """Middleware to log requests with anonymized IP addresses.
+    
+    Validates: Requirement 12.8
+    """
+    
+    async def dispatch(self, request: Request, call_next):
+        """Log request with anonymized IP."""
+        start_time = time.time()
+        
+        # Get and anonymize client IP
+        client_ip = get_client_ip(request)
+        anonymized_ip = anonymize_ip(client_ip)
+        
+        # Log request
+        logger.info(
+            f"Request: {request.method} {request.url.path} from {anonymized_ip}"
+        )
+        
+        # Process request
+        try:
+            response = await call_next(request)
+            
+            # Log response
+            process_time = time.time() - start_time
+            logger.info(
+                f"Response: {response.status_code} for {request.method} {request.url.path} "
+                f"from {anonymized_ip} (took {process_time:.2f}s)"
+            )
+            
+            return response
+        except Exception as e:
+            # Log error with anonymized IP
+            logger.error(
+                f"Error processing request {request.method} {request.url.path} "
+                f"from {anonymized_ip}: {str(e)}"
+            )
+            raise
 
 
 def sanitize_disease_name(disease_name: str) -> str:
@@ -75,6 +161,12 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Add HTTPS enforcement middleware (must be first)
+app.add_middleware(HTTPSRedirectMiddleware)
+
+# Add logging middleware with IP anonymization
+app.add_middleware(LoggingMiddleware)
 
 # Configure CORS middleware
 app.add_middleware(

@@ -104,7 +104,13 @@ RATE_LIMIT_PER_MINUTE=100
 
 # Logging
 LOG_LEVEL=INFO
+
+# Security Configuration
+ENFORCE_HTTPS=false
+ENVIRONMENT=development
 ```
+
+**Note**: See `.env.example` for detailed documentation of all configuration options.
 
 ### 6. Start Redis
 
@@ -138,6 +144,20 @@ The API will be available at:
 
 ## Running Tests
 
+### Set Environment Variables (If Needed)
+
+If you encounter environment variable errors when running tests, set the test environment variables:
+
+**Windows (PowerShell):**
+```powershell
+.\set_test_env.ps1
+```
+
+**macOS/Linux (Bash):**
+```bash
+source set_test_env.sh
+```
+
 ### Run All Tests
 
 ```bash
@@ -156,6 +176,9 @@ pytest -m property
 # Integration tests only
 pytest -m integration
 
+# Security tests
+pytest tests/test_security_unit.py
+
 # Run with coverage report
 pytest --cov=app --cov-report=html
 ```
@@ -163,7 +186,7 @@ pytest --cov=app --cov-report=html
 ### Run Specific Test File
 
 ```bash
-pytest tests/unit/test_rdkit_analyzer.py
+pytest tests/test_rdkit_analyzer.py
 ```
 
 ## API Documentation
