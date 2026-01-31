@@ -90,14 +90,14 @@ export default function SearchBar({ onSearch, isLoading, initialValue = '' }: Se
             onBlur={() => setTimeout(() => setShowAutocomplete(false), 200)}
             placeholder="Enter disease name (e.g., Alzheimer's disease)"
             disabled={isLoading}
-            className={`w-full px-6 py-4 pl-14 pr-6 text-lg border-2 rounded-xl focus:outline-none focus:ring-4 transition-all shadow-md ${
+            className={`w-full px-5 py-3 pl-12 pr-5 text-base border-2 rounded-xl focus:outline-none focus:ring-4 transition-all shadow-md ${
               showError
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
-                : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100 group-hover:border-blue-300'
-            } ${isLoading ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'}`}
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-100 bg-white'
+                : 'border-blue-200 focus:border-blue-500 focus:ring-blue-100 group-hover:border-blue-400 bg-white/95 backdrop-blur-sm'
+            } ${isLoading ? 'bg-gray-50 cursor-not-allowed' : ''}`}
           />
-          <div className="absolute left-5 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-blue-600 rounded-lg">
-            <Search className="w-5 h-5 text-white" />
+          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 w-7 h-7 flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md shadow-blue-500/30">
+            <Search className="w-4 h-4 text-white" strokeWidth={2.5} />
           </div>
         </div>
 
@@ -111,11 +111,11 @@ export default function SearchBar({ onSearch, isLoading, initialValue = '' }: Se
         <button
           type="submit"
           disabled={!isValid || isLoading}
-          className="mt-4 w-full bg-blue-600 text-white py-4 px-8 rounded-xl font-bold text-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-lg"
+          className="mt-3 w-auto mx-auto block bg-blue-500 text-white py-2 px-6 rounded-lg font-medium text-sm hover:bg-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
         >
           {isLoading ? (
             <span className="flex items-center justify-center gap-2">
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               Searching...
             </span>
           ) : (
