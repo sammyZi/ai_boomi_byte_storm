@@ -320,8 +320,8 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Test cancellation
     - _Requirements: 7.1, 7.5, 13.8_
 
-- [ ] 19. Implement Docking Results Visualization
-  - [ ] 19.1 Create DockingResultsViewer component
+- [x] 19. Implement Docking Results Visualization ✅ 32 tests passing
+  - [x] 19.1 Create DockingResultsViewer component
     - Reuse existing ProteinViewer3D component for protein structure
     - Overlay ligand poses on protein structure
     - Display protein in cartoon representation
@@ -332,26 +332,26 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Add rotation, zoom, pan controls (reuse existing)
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8_
 
-  - [ ] 19.2 Add interaction highlighting
+  - [x] 19.2 Add interaction highlighting
     - Detect and display hydrogen bonds
     - Detect and display hydrophobic contacts
     - Add toggle to show/hide interactions
     - _Requirements: 8.9_
 
-  - [ ] 19.3 Add download button for results
+  - [x] 19.3 Add download button for results
     - Download PDBQT files
     - Download summary CSV
     - _Requirements: 8.10_
 
-  - [ ] 19.4 Write unit tests for results viewer
+  - [x] 19.4 Write unit tests for results viewer
     - Test component rendering
     - Test pose switching
     - Test interaction display
     - Test download functionality
     - _Requirements: 8.1, 8.7, 8.10_
 
-- [ ] 20. Implement Docking Results Analysis Panel
-  - [ ] 20.1 Create DockingResultsAnalysis component
+- [x] 20. Implement Docking Results Analysis Panel ✅ 22 tests passing
+  - [x] 20.1 Create DockingResultsAnalysis component
     - Display summary table of all poses
     - Show binding affinity scores ranked
     - Show RMSD values
@@ -360,20 +360,20 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Show improvement/difference from prediction
     - _Requirements: 9.1, 9.2, 9.4, 9.5, 9.6_
 
-  - [ ] 20.2 Integrate docking scores with candidate ranking
+  - [x] 20.2 Integrate docking scores with candidate ranking
     - Update composite score calculation to include docking score
     - Re-rank candidates based on actual docking results
     - Show before/after ranking comparison
     - _Requirements: 9.6, 9.7_
 
-  - [ ] 20.3 Write unit tests for results analysis
+  - [x] 20.3 Write unit tests for results analysis
     - Test table rendering
     - Test score calculations
     - Test ranking updates
     - _Requirements: 9.1, 9.5, 9.7_
 
-- [ ] 21. Implement Docking Job History Page
-  - [ ] 21.1 Create DockingJobHistory page component
+- [x] 21. Implement Docking Job History Page ✅ 25 tests passing
+  - [x] 21.1 Create DockingJobHistory page component
     - Display table of past docking jobs
     - Show job ID, candidate, target, status, date
     - Add filters (status, date range, target)
@@ -382,15 +382,15 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Add "Re-run" button for failed jobs
     - _Requirements: 7.9, 14.6, 14.7, 14.8, 14.10_
 
-  - [ ] 21.2 Write unit tests for job history page
+  - [x] 21.2 Write unit tests for job history page
     - Test table rendering
     - Test filtering
     - Test pagination
     - Test navigation to results
     - _Requirements: 14.6, 14.7_
 
-- [ ] 22. Integrate Docking into Existing Candidate Details Page
-  - [ ] 22.1 Update candidate details page (candidates/[id]/page.tsx)
+- [x] 22. Integrate Docking into Existing Candidate Details Page ✅ 15 tests passing
+  - [x] 22.1 Update candidate details page (candidates/[id]/page.tsx)
     - Add "Docking Results" tab if docking has been run
     - Display DockingResultsViewer in tab
     - Display DockingResultsAnalysis in tab
@@ -398,15 +398,22 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Show job tracker if docking is in progress
     - _Requirements: 13.1, 13.7, 13.9_
 
-  - [ ] 22.2 Write integration tests for candidate page
+  - [x] 22.2 Write unit tests for candidate details docking integration
+    - Test tab navigation
+    - Test docking modal opening
+    - Test job tracking display
+    - Test results display
+    - _Requirements: 13.1, 13.7_
+
+  - [x] 22.3 Write integration tests for candidate page
     - Test docking button display
     - Test job tracker display
     - Test results display
     - Test tab navigation
     - _Requirements: 13.1, 13.9_
 
-- [ ] 23. Implement Docking API Client
-  - [ ] 23.1 Create docking API client module (lib/docking-api.ts)
+- [x] 23. Implement Docking API Client ✅ 31 tests passing
+  - [x] 23.1 Create docking API client module (lib/docking-api.ts)
     - Function: submitDockingJob(candidateIds, params)
     - Function: getDockingJobStatus(jobId)
     - Function: getDockingJobResults(jobId)
@@ -416,7 +423,7 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Handle authentication
     - _Requirements: 10.1, 10.8, 10.9, 10.10_
 
-  - [ ] 23.2 Write unit tests for API client
+  - [x] 23.2 Write unit tests for API client
     - Test API request formatting
     - Test response parsing
     - Test error handling

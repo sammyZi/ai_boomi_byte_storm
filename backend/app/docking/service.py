@@ -353,7 +353,7 @@ class DockingService:
     
     async def get_user_job_history(
         self,
-        user_id: str,
+        user_id: Optional[str] = None,
         status: Optional[DockingJobStatus] = None,
         target_uniprot_id: Optional[str] = None,
         since: Optional[datetime] = None,
@@ -363,7 +363,7 @@ class DockingService:
         """Get a user's job history with optional filtering.
         
         Args:
-            user_id: The user identifier
+            user_id: The user identifier (None returns all jobs - for development)
             status: Optional filter by job status
             target_uniprot_id: Optional filter by target protein
             since: Optional filter for jobs created after this date
@@ -374,7 +374,11 @@ class DockingService:
             Tuple of (list of jobs, total count)
         """
         # Build query conditions
-        conditions = [DockingJobDB.user_id == user_id]
+        conditions = []
+        
+        # Only filter by user_id if provided
+        if user_id:
+            conditions.append(DockingJobDB.user_id == user_id)
         
         if status:
             conditions.append(DockingJobDB.status == status.value)
@@ -384,18 +388,29 @@ class DockingService:
             conditions.append(DockingJobDB.created_at >= since)
         
         # Get total count
-        count_query = select(func.count(DockingJobDB.id)).where(and_(*conditions))
+        if conditions:
+            count_query = select(func.count(DockingJobDB.id)).where(and_(*conditions))
+        else:
+            count_query = select(func.count(DockingJobDB.id))
         count_result = await self.db.execute(count_query)
         total_count = count_result.scalar() or 0
         
         # Get jobs with pagination
-        query = (
-            select(DockingJobDB)
-            .where(and_(*conditions))
-            .order_by(desc(DockingJobDB.created_at))
-            .limit(limit)
-            .offset(offset)
-        )
+        if conditions:
+            query = (
+                select(DockingJobDB)
+                .where(and_(*conditions))
+                .order_by(desc(DockingJobDB.created_at))
+                .limit(limit)
+                .offset(offset)
+            )
+        else:
+            query = (
+                select(DockingJobDB)
+                .order_by(desc(DockingJobDB.created_at))
+                .limit(limit)
+                .offset(offset)
+            )
         result = await self.db.execute(query)
         jobs = list(result.scalars().all())
         

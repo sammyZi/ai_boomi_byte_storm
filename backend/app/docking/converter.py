@@ -17,10 +17,31 @@ import logging
 import tempfile
 import os
 import re
+import sys
+import warnings
 from typing import Optional, Tuple, List, Set
 from pathlib import Path
+from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def suppress_openbabel_warnings():
+    """Suppress non-critical Open Babel warnings during conversion.
+    
+    Open Babel emits warnings about missing optional data files (like space-groups.txt)
+    that don't affect PDBQT conversion. This context manager suppresses stderr
+    temporarily to keep logs clean.
+    """
+    # Open Babel writes warnings to stderr
+    old_stderr = sys.stderr
+    try:
+        sys.stderr = open(os.devnull, 'w')
+        yield
+    finally:
+        sys.stderr.close()
+        sys.stderr = old_stderr
 
 # Common metal ions found in protein structures
 METAL_IONS: Set[str] = {
@@ -137,50 +158,56 @@ class PDBQTConverter:
             self._detect_metals_and_cofactors(pdb_data)
         
         try:
-            # Import Open Babel
+            # Import Open Babel (suppress non-critical data file warnings)
             try:
-                from openbabel import openbabel as ob
+                with suppress_openbabel_warnings():
+                    from openbabel import openbabel as ob
             except ImportError:
                 logger.warning("Open Babel not installed, using fallback conversion")
                 return self._fallback_protein_conversion(pdb_data, uniprot_id)
             
-            # Create molecule from PDB (Req 2.1)
-            mol = ob.OBMol()
-            conv = ob.OBConversion()
-            conv.SetInFormat("pdb")
-            conv.SetOutFormat("pdbqt")
-            
-            if not conv.ReadString(mol, pdb_data):
-                raise ValueError("Failed to parse PDB data - invalid format")
-            
-            if mol.NumAtoms() == 0:
-                raise ValueError("No atoms found in PDB data")
-            
-            # Add hydrogens if requested (Req 2.2)
-            if add_hydrogens:
-                mol.AddHydrogens()
-                logger.debug(f"Added hydrogens to {uniprot_id}, total atoms: {mol.NumAtoms()}")
-            
-            # Merge non-polar hydrogens if requested (Req 2.4)
-            if merge_nonpolar_h:
-                self._merge_nonpolar_hydrogens(mol)
-            
-            # Assign Gasteiger partial charges (Req 2.3)
-            charge_model = ob.OBChargeModel.FindType("gasteiger")
-            if charge_model:
-                success = charge_model.ComputeCharges(mol)
-                if success:
-                    logger.debug(f"Computed Gasteiger charges for {uniprot_id}")
+            # Suppress warnings during molecule operations
+            with suppress_openbabel_warnings():
+                # Create molecule from PDB (Req 2.1)
+                mol = ob.OBMol()
+                conv = ob.OBConversion()
+                conv.SetInFormat("pdb")
+                conv.SetOutFormat("pdbqt")
+                
+                if not conv.ReadString(mol, pdb_data):
+                    raise ValueError("Failed to parse PDB data - invalid format")
+                
+                if mol.NumAtoms() == 0:
+                    raise ValueError("No atoms found in PDB data")
+                
+                # Add hydrogens if requested (Req 2.2)
+                if add_hydrogens:
+                    mol.AddHydrogens()
+                    logger.debug(f"Added hydrogens to {uniprot_id}, total atoms: {mol.NumAtoms()}")
+                
+                # Merge non-polar hydrogens if requested (Req 2.4)
+                if merge_nonpolar_h:
+                    self._merge_nonpolar_hydrogens(mol)
+                
+                # Assign Gasteiger partial charges (Req 2.3)
+                charge_model = ob.OBChargeModel.FindType("gasteiger")
+                if charge_model:
+                    success = charge_model.ComputeCharges(mol)
+                    if success:
+                        logger.debug(f"Computed Gasteiger charges for {uniprot_id}")
+                    else:
+                        logger.warning(f"Failed to compute Gasteiger charges for {uniprot_id}")
                 else:
-                    logger.warning(f"Failed to compute Gasteiger charges for {uniprot_id}")
-            else:
-                logger.warning("Gasteiger charge model not available")
-            
-            # Convert to PDBQT (Req 2.6)
-            pdbqt_data = conv.WriteString(mol)
+                    logger.warning("Gasteiger charge model not available")
+                
+                # Convert to PDBQT (Req 2.6)
+                pdbqt_data = conv.WriteString(mol)
             
             if not pdbqt_data or len(pdbqt_data.strip()) == 0:
                 raise ValueError("PDBQT conversion produced empty output")
+            
+            # Clean receptor PDBQT - remove ligand-specific tags
+            pdbqt_data = self._clean_receptor_pdbqt(pdbqt_data)
             
             # Write to file
             output_path = os.path.join(self.work_dir, f"{uniprot_id}_receptor.pdbqt")
@@ -239,6 +266,51 @@ class PDBQTConverter:
                             if metal not in self._detected_metals:
                                 self._detected_metals.append(metal)
                                 logger.debug(f"Detected metal atom: {metal}")
+    
+    def _clean_receptor_pdbqt(self, pdbqt_data: str) -> str:
+        """Remove ligand-specific tags from receptor PDBQT files.
+        
+        AutoDock Vina requires receptor files to NOT contain ligand-specific
+        tags like ROOT, ENDROOT, BRANCH, ENDBRANCH, and TORSDOF. These tags
+        are only valid for flexible ligand files.
+        
+        Args:
+            pdbqt_data: Raw PDBQT data that may contain ligand tags
+            
+        Returns:
+            Cleaned PDBQT data suitable for receptor use
+            
+        Requirement: 2.6
+        """
+        # Tags that should only appear in ligand PDBQT files
+        # These may appear with or without spaces before numbers (e.g., "BRANCH 1 2" or "BRANCH1 2")
+        ligand_only_prefixes = ('ROOT', 'ENDROOT', 'BRANCH', 'ENDBRANCH', 'TORSDOF')
+        
+        cleaned_lines = []
+        removed_count = 0
+        
+        for line in pdbqt_data.split('\n'):
+            stripped = line.strip()
+            # Check if line starts with a ligand-only tag prefix
+            should_remove = False
+            for prefix in ligand_only_prefixes:
+                if stripped.startswith(prefix):
+                    # Make sure it's the tag itself, not part of another word
+                    # e.g., "BRANCH" matches "BRANCH 1 2" or "BRANCH1 2" but not "BRANCHING"
+                    rest = stripped[len(prefix):]
+                    if rest == '' or rest[0].isdigit() or rest[0].isspace():
+                        should_remove = True
+                        removed_count += 1
+                        logger.debug(f"Removed ligand tag from receptor: {stripped[:20]}...")
+                        break
+            
+            if not should_remove:
+                cleaned_lines.append(line)
+        
+        if removed_count > 0:
+            logger.info(f"Cleaned receptor PDBQT: removed {removed_count} ligand-specific tags")
+        
+        return '\n'.join(cleaned_lines)
     
     def _merge_nonpolar_hydrogens(self, mol) -> None:
         """Merge non-polar hydrogens into their parent carbon atoms.
@@ -376,22 +448,23 @@ class PDBQTConverter:
             
             # Fallback to Open Babel
             try:
-                from openbabel import openbabel as ob
-                
-                obmol = ob.OBMol()
-                conv = ob.OBConversion()
-                conv.SetInFormat("pdb")
-                conv.SetOutFormat("pdbqt")
-                
-                if not conv.ReadString(obmol, pdb_data):
-                    raise ValueError("Failed to convert PDB to PDBQT")
-                
-                # Add Gasteiger charges
-                charge_model = ob.OBChargeModel.FindType("gasteiger")
-                if charge_model:
-                    charge_model.ComputeCharges(obmol)
-                
-                pdbqt_data = conv.WriteString(obmol)
+                with suppress_openbabel_warnings():
+                    from openbabel import openbabel as ob
+                    
+                    obmol = ob.OBMol()
+                    conv = ob.OBConversion()
+                    conv.SetInFormat("pdb")
+                    conv.SetOutFormat("pdbqt")
+                    
+                    if not conv.ReadString(obmol, pdb_data):
+                        raise ValueError("Failed to convert PDB to PDBQT")
+                    
+                    # Add Gasteiger charges
+                    charge_model = ob.OBChargeModel.FindType("gasteiger")
+                    if charge_model:
+                        charge_model.ComputeCharges(obmol)
+                    
+                    pdbqt_data = conv.WriteString(obmol)
                 
             except ImportError:
                 logger.warning("Open Babel not installed, using basic PDBQT conversion")

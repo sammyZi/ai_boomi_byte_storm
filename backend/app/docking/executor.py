@@ -56,6 +56,13 @@ class VinaExecutor:
                 logger.info(f"Found Vina at: {path}")
                 return path
         
+        # Check backend tools folder first
+        backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        tools_path = os.path.join(backend_dir, 'tools', 'vina.exe')
+        if os.path.exists(tools_path):
+            logger.info(f"Found Vina at: {tools_path}")
+            return tools_path
+        
         # Check common installation directories
         common_paths = [
             '/usr/local/bin/vina',

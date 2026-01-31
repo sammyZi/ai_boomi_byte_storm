@@ -104,3 +104,69 @@ export interface UIPreferences {
   theme: 'light' | 'dark';
   disclaimerDismissed: boolean;
 }
+
+// Docking-related types
+export interface GridBoxParams {
+  center_x: number;
+  center_y: number;
+  center_z: number;
+  size_x: number;
+  size_y: number;
+  size_z: number;
+}
+
+export interface DockingParams {
+  exhaustiveness: number;
+  num_modes: number;
+  energy_range: number;
+}
+
+export interface DockingSubmitRequest {
+  candidate_id: string;
+  target_uniprot_id: string;
+  disease_name: string;
+  smiles: string;
+  grid_params?: GridBoxParams;
+  docking_params?: DockingParams;
+}
+
+export interface DockingSubmitResponse {
+  job_id: string;
+  status: string;
+  message: string;
+  estimated_time_seconds?: number;
+}
+
+export type DockingJobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+
+export interface DockingJobStatusResponse {
+  job_id: string;
+  status: DockingJobStatus;
+  progress_percent: number;
+  current_step?: string;
+  estimated_time_remaining_seconds?: number;
+  queue_position?: number;
+  error_message?: string;
+  created_at: string;
+  started_at?: string;
+  completed_at?: string;
+}
+
+export interface DockingPose {
+  pose_number: number;
+  binding_affinity: number;
+  rmsd_lb: number;
+  rmsd_ub: number;
+}
+
+export interface DockingJobResult {
+  job_id: string;
+  candidate_id: string;
+  target_uniprot_id: string;
+  status: DockingJobStatus;
+  best_affinity?: number;
+  num_poses: number;
+  poses: DockingPose[];
+  pdbqt_url?: string;
+  error_message?: string;
+}

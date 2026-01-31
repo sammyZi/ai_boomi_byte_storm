@@ -23,6 +23,15 @@ from app.docking.models import (
     GridBoxParams,
     DockingParams
 )
+from app.docking.service import (
+    DockingService,
+    DockingServiceError,
+    JobNotFoundError,
+    JobLimitExceededError,
+    InvalidJobStateError,
+    get_docking_service,
+)
+from app.docking.router import router as docking_router
 
 __all__ = [
     'DockingJob',
@@ -31,5 +40,12 @@ __all__ = [
     'DockingJobRequest',
     'DockingJobResponse',
     'GridBoxParams',
-    'DockingParams'
+    'DockingParams',
+    'DockingService',
+    'DockingServiceError',
+    'JobNotFoundError',
+    'JobLimitExceededError',
+    'InvalidJobStateError',
+    'get_docking_service',
+    'docking_router',
 ]

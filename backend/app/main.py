@@ -33,6 +33,7 @@ from app.docking.tasks import (
     cancel_docking_job,
     get_queue_position
 )
+from app.docking.router import router as docking_router
 
 
 # Configure logging
@@ -198,6 +199,9 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 # Add rate limiting middleware
 rate_limiter = RateLimiter(requests_per_minute=settings.rate_limit_per_minute)
 app.add_middleware(RateLimitMiddleware, rate_limiter=rate_limiter)
+
+# Include the docking router for job history and other endpoints
+app.include_router(docking_router)
 
 # Initialize pipeline (will be created per request for now)
 # In production, consider using dependency injection
