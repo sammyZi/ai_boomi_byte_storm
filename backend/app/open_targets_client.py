@@ -120,6 +120,7 @@ class OpenTargetsClient:
             List of target dictionaries with association data
         """
         # GraphQL query to get disease-target associations
+        # Request both Ensembl ID and UniProt IDs
         query = """
         query DiseaseTargets($diseaseId: String!) {
           disease(efoId: $diseaseId) {
@@ -129,6 +130,10 @@ class OpenTargetsClient:
                   id
                   approvedSymbol
                   approvedName
+                  proteinIds {
+                    id
+                    source
+                  }
                 }
                 score
                 datatypeScores {
@@ -192,9 +197,20 @@ class OpenTargetsClient:
             if score < effective_min_confidence:
                 continue
             
+            # Extract UniProt ID from proteinIds array
+            # Prefer UniProt ID, fall back to Ensembl ID
+            ensembl_id = target_data.get("id", "")
+            uniprot_id = ensembl_id  # Default to Ensembl ID
+            
+            protein_ids = target_data.get("proteinIds", [])
+            for protein_id_entry in protein_ids:
+                if protein_id_entry.get("source") == "uniprot_swissprot":
+                    uniprot_id = protein_id_entry.get("id", "")
+                    break
+            
             # Create Target object
             target = Target(
-                uniprot_id=target_data.get("id", ""),
+                uniprot_id=uniprot_id,
                 gene_symbol=target_data.get("approvedSymbol", ""),
                 protein_name=target_data.get("approvedName", ""),
                 confidence_score=score,
