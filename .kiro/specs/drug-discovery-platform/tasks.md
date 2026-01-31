@@ -127,21 +127,21 @@ This implementation plan focuses on building the backend drug discovery platform
     - Test invalid SMILES handling
     - _Requirements: 3.5, 3.6, 14.1, 14.2_
 
-- [ ] 4. Checkpoint - Ensure RDKit analyzer tests pass
+- [x] 4. Checkpoint - Ensure RDKit analyzer tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Implement Redis cache layer
-  - [ ] 5.1 Create CacheLayer class with Redis client
+- [x] 5. Implement Redis cache layer
+  - [x] 5.1 Create CacheLayer class with Redis client
     - Implement get() and set() methods with TTL
     - Implement invalidate() for cache clearing
     - Handle Redis connection errors gracefully
     - _Requirements: 9.2, 9.3, 9.4, 9.5, 9.6_
   
-  - [ ] 5.2 Write property test for cache behavior
+  - [x] 5.2 Write property test for cache behavior
     - **Property 4: Cache Hit Behavior**
     - **Validates: Requirements 2.4, 3.7, 9.6**
   
-  - [ ] 5.3 Write unit tests for cache layer
+  - [x] 5.3 Write unit tests for cache layer
     - Test cache hit/miss scenarios
     - Test TTL expiration
     - Test Redis connection failures
