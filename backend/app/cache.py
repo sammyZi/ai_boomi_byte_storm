@@ -36,6 +36,27 @@ class CacheLayer:
         self._client: Optional[redis.Redis] = None
         self._connected = False
     
+    def _sanitize_key(self, key: str) -> str:
+        """Sanitize cache key to ensure valid UTF-8 encoding.
+        
+        Removes or replaces invalid Unicode characters (like lone surrogates)
+        that cannot be encoded in UTF-8.
+        
+        Args:
+            key: Original cache key
+            
+        Returns:
+            Sanitized key safe for UTF-8 encoding
+        """
+        try:
+            # Try to encode as UTF-8, replacing invalid characters
+            sanitized = key.encode('utf-8', errors='replace').decode('utf-8')
+            return sanitized
+        except Exception as e:
+            # Fallback: use a hash of the original key
+            logger.warning(f"Key sanitization failed for '{key}': {e}. Using hash.")
+            return f"sanitized_{hash(key)}"
+    
     async def _get_client(self) -> Optional[redis.Redis]:
         """Get or create Redis client with connection handling.
         
@@ -76,16 +97,19 @@ class CacheLayer:
         if client is None:
             return None
         
+        # Sanitize key to handle invalid Unicode
+        sanitized_key = self._sanitize_key(key)
+        
         try:
-            value = await client.get(key)
+            value = await client.get(sanitized_key)
             if value is None:
-                logger.debug(f"Cache miss: {key}")
+                logger.debug(f"Cache miss: {sanitized_key}")
                 return None
             
-            logger.debug(f"Cache hit: {key}")
+            logger.debug(f"Cache hit: {sanitized_key}")
             return json.loads(value)
         except (RedisError, json.JSONDecodeError) as e:
-            logger.warning(f"Cache get error for key '{key}': {e}")
+            logger.warning(f"Cache get error for key '{sanitized_key}': {e}")
             return None
     
     async def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
@@ -103,15 +127,17 @@ class CacheLayer:
         if client is None:
             return False
         
+        # Sanitize key to handle invalid Unicode
+        sanitized_key = self._sanitize_key(key)
         ttl = ttl if ttl is not None else self.default_ttl
         
         try:
             serialized = json.dumps(value)
-            await client.setex(key, ttl, serialized)
-            logger.debug(f"Cache set: {key} (TTL: {ttl}s)")
+            await client.setex(sanitized_key, ttl, serialized)
+            logger.debug(f"Cache set: {sanitized_key} (TTL: {ttl}s)")
             return True
         except (RedisError, TypeError, json.JSONEncodeError) as e:
-            logger.warning(f"Cache set error for key '{key}': {e}")
+            logger.warning(f"Cache set error for key '{sanitized_key}': {e}")
             return False
     
     async def invalidate(self, pattern: str) -> int:

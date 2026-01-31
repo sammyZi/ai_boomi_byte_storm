@@ -474,7 +474,7 @@ This implementation plan focuses on building the backend drug discovery platform
     - Test input sanitization
     - _Requirements: 12.1, 12.2, 12.5_
 
-- [ ] 17. Checkpoint - Ensure backend tests pass
+- [x] 17. Checkpoint - Ensure backend tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 18. Integration and performance testing
