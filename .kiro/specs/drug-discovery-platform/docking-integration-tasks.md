@@ -199,8 +199,8 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Test queries
     - _Requirements: 14.1, 14.2_
 
-- [ ] 13. Implement Docking Service Layer
-  - [ ] 13.1 Create DockingService class
+- [x] 13. Implement Docking Service Layer ✅ 36 tests passing
+  - [x] 13.1 Create DockingService class
     - Method: submit_docking_job(candidate_ids, params) -> job_ids
     - Method: get_job_status(job_id) -> status_info
     - Method: get_job_results(job_id) -> results
@@ -211,7 +211,7 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Queue Celery tasks for execution
     - _Requirements: 1.4, 7.1, 7.6, 7.9, 15.6_
 
-  - [ ] 13.2 Write unit tests for docking service
+  - [x] 13.2 Write unit tests for docking service
     - Test job submission
     - Test status retrieval
     - Test results retrieval
@@ -219,8 +219,8 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Test job limits
     - _Requirements: 1.4, 7.6, 15.6_
 
-- [ ] 14. Implement Docking API Endpoints
-  - [ ] 14.1 Create API endpoint POST /api/docking/submit
+- [x] 14. Implement Docking API Endpoints ✅ 28 tests passing
+  - [x] 14.1 Create API endpoint POST /api/docking/submit
     - Define request schema (candidate_ids, grid_params, docking_params)
     - Define response schema (job_ids, estimated_time)
     - Validate request payload
@@ -228,58 +228,58 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Return job IDs and queue position
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7_
 
-  - [ ] 14.2 Create API endpoint GET /api/docking/jobs/{job_id}/status
+  - [x] 14.2 Create API endpoint GET /api/docking/jobs/{job_id}/status
     - Return job status (queued, running, completed, failed)
     - Return progress percentage
     - Return estimated time remaining
     - Return error message if failed
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 10.8_
 
-  - [ ] 14.3 Create API endpoint GET /api/docking/jobs/{job_id}/results
+  - [x] 14.3 Create API endpoint GET /api/docking/jobs/{job_id}/results
     - Validate job is completed
     - Return binding affinity scores for all poses
     - Return PDBQT file URLs for download
     - Return summary statistics
     - _Requirements: 9.1, 9.5, 9.9, 10.9_
 
-  - [ ] 14.4 Create API endpoint DELETE /api/docking/jobs/{job_id}
+  - [x] 14.4 Create API endpoint DELETE /api/docking/jobs/{job_id}
     - Cancel running or queued job
     - Clean up temporary files
     - Update job status to cancelled
     - _Requirements: 7.6, 7.7, 10.10_
 
-  - [ ] 14.5 Create API endpoint GET /api/docking/jobs
+  - [x] 14.5 Create API endpoint GET /api/docking/jobs
     - Return user's job history
     - Support filtering by status, date, target
     - Support pagination
     - _Requirements: 7.9, 14.6, 14.7_
 
-  - [ ] 14.6 Write unit tests for API endpoints
+  - [x] 14.6 Write unit tests for API endpoints
     - Test valid requests
     - Test invalid requests (validation errors)
     - Test authentication and authorization
     - Test error scenarios
     - _Requirements: 10.1, 10.2, 10.10_
 
-- [ ] 15. Checkpoint - Ensure backend API tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+- [x] 15. Checkpoint - Ensure backend API tests pass ✅ 90 docking tests passing
+  - All docking-related tests pass (DB models, service, API endpoints)
 
-- [ ] 16. Implement Frontend Docking Button Component
-  - [ ] 16.1 Add "Run Docking" button to CandidateCard component
+- [x] 16. Implement Frontend Docking Button Component ✅
+  - [x] 16.1 Add "Run Docking" button to CandidateCard component
     - Add button to existing CandidateCard.tsx
     - Show button only when protein structure is available
     - Handle button click to open docking modal
     - Integrate with existing UI styling
     - _Requirements: 1.1, 13.1_
 
-  - [ ] 16.2 Write unit tests for docking button
+  - [x] 16.2 Write unit tests for docking button
     - Test button rendering
     - Test button click handler
     - Test conditional display
     - _Requirements: 13.1_
 
-- [ ] 17. Implement Docking Submission Modal
-  - [ ] 17.1 Create DockingSubmissionModal component
+- [x] 17. Implement Docking Submission Modal ✅ 19 tests passing
+  - [x] 17.1 Create DockingSubmissionModal component
     - Display candidate summary (molecule name, target, scores)
     - Show estimated docking time (5-15 minutes)
     - Add collapsible advanced options section
@@ -288,22 +288,22 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Add "Run Docking" and "Cancel" buttons
     - _Requirements: 13.3, 13.4, 13.5, 13.6_
 
-  - [ ] 17.2 Implement modal submission logic
+  - [x] 17.2 Implement modal submission logic
     - Call docking API on submit
     - Handle API errors
     - Close modal on success
     - Open job tracking interface
     - _Requirements: 13.6, 13.7_
 
-  - [ ] 17.3 Write unit tests for docking modal
+  - [x] 17.3 Write unit tests for docking modal
     - Test modal rendering
     - Test parameter inputs
     - Test submission
     - Test error handling
     - _Requirements: 13.3, 13.10_
 
-- [ ] 18. Implement Docking Job Tracking Interface
-  - [ ] 18.1 Create DockingJobTracker component
+- [x] 18. Implement Docking Job Tracking Interface ✅ 19 tests passing
+  - [x] 18.1 Create DockingJobTracker component
     - Display job status (queued, running, completed, failed)
     - Display progress bar with percentage
     - Display current step description
@@ -313,7 +313,7 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Redirect to results page when completed
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 13.8_
 
-  - [ ] 18.2 Write unit tests for job tracker
+  - [x] 18.2 Write unit tests for job tracker
     - Test status display
     - Test progress updates
     - Test polling logic
