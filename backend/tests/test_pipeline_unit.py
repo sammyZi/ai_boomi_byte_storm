@@ -364,29 +364,33 @@ class TestDiscoveryPipeline:
         """
         pipeline = DiscoveryPipeline()
         
-        pipeline.open_targets_client.get_disease_targets = AsyncMock(
-            return_value=[sample_target]
-        )
-        
-        pipeline.alphafold_client.get_protein_structure = AsyncMock(return_value=None)
-        
-        pipeline.chembl_client.get_bioactive_molecules = AsyncMock(
-            return_value=[sample_molecule]
-        )
-        
-        # AI analysis raises exception
-        pipeline.biomistral_engine.analyze_candidates = AsyncMock(
-            side_effect=Exception("AI service unavailable")
-        )
-        
-        result = await pipeline.discover_drugs("Test Disease")
-        
-        # Should still complete successfully
-        assert result is not None
-        assert len(result.candidates) > 0
-        
-        # Should have warning about AI unavailability
-        assert any("ai" in w.lower() for w in result.warnings)
+        try:
+            pipeline.open_targets_client.get_disease_targets = AsyncMock(
+                return_value=[sample_target]
+            )
+            
+            pipeline.alphafold_client.get_protein_structure = AsyncMock(return_value=None)
+            
+            pipeline.chembl_client.get_bioactive_molecules = AsyncMock(
+                return_value=[sample_molecule]
+            )
+            
+            # AI analysis raises exception
+            pipeline.biomistral_engine.analyze_candidates = AsyncMock(
+                side_effect=Exception("AI service unavailable")
+            )
+            
+            result = await pipeline.discover_drugs("Test Disease")
+            
+            # Should still complete successfully
+            assert result is not None
+            assert len(result.candidates) > 0
+            
+            # Should have warning about AI unavailability
+            assert any("ai" in w.lower() for w in result.warnings)
+        finally:
+            # Ensure proper cleanup
+            await pipeline.close()
         
         # Clean up
         await pipeline.close()
@@ -399,20 +403,24 @@ class TestDiscoveryPipeline:
         """
         pipeline = DiscoveryPipeline()
         
-        pipeline.open_targets_client.get_disease_targets = AsyncMock(
-            return_value=[sample_target]
-        )
-        
-        # Mock ChEMBL to raise exception
-        pipeline.chembl_client.get_bioactive_molecules = AsyncMock(
-            side_effect=Exception("ChEMBL API error")
-        )
-        
-        result = await pipeline.discover_drugs("Test Disease")
-        
-        # Should handle error gracefully
-        assert result is not None
-        assert len(result.candidates) == 0
+        try:
+            pipeline.open_targets_client.get_disease_targets = AsyncMock(
+                return_value=[sample_target]
+            )
+            
+            # Mock ChEMBL to raise exception
+            pipeline.chembl_client.get_bioactive_molecules = AsyncMock(
+                side_effect=Exception("ChEMBL API error")
+            )
+            
+            result = await pipeline.discover_drugs("Test Disease")
+            
+            # Should handle error gracefully
+            assert result is not None
+            assert len(result.candidates) == 0
+        finally:
+            # Ensure proper cleanup
+            await pipeline.close()
     
     @pytest.mark.asyncio
     async def test_context_manager(self):

@@ -147,6 +147,8 @@ class DiscoveryPipeline:
             
             # Calculate processing time
             processing_time = (datetime.utcnow() - start_time).total_seconds()
+            # Ensure minimum processing time to satisfy validation (gt=0.0)
+            processing_time = max(processing_time, 0.001)
             
             # Create result
             result = DiscoveryResult(
@@ -452,6 +454,8 @@ class DiscoveryPipeline:
             Empty DiscoveryResult with warnings
         """
         processing_time = (datetime.utcnow() - start_time).total_seconds()
+        # Ensure minimum processing time to satisfy validation (gt=0.0)
+        processing_time = max(processing_time, 0.001)
         
         return DiscoveryResult(
             query=disease_name,

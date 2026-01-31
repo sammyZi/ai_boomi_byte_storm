@@ -1,0 +1,4 @@
+# file: D:\ai_boomi\backend\app\scoring_engine.py
+# hypothesis_version: 6.151.4
+
+[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 0.9, 1.0, 4.0, 10.0, 'EC50', 'IC50', 'Kd', 'Ki']
