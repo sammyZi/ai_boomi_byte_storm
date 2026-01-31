@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import SearchBar from '@/components/SearchBar';
-import { Target, Brain, Shield, Database, Sparkles, TrendingUp, CheckCircle } from 'lucide-react';
+import { Target, Brain, Shield, Database, Sparkles, TrendingUp, CheckCircle, Pill } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
@@ -60,48 +60,60 @@ export default function HomePage() {
     'Breast cancer',
   ];
 
+  const benefits = [
+    'Comprehensive target-to-drug pipeline',
+    'AI-powered candidate analysis',
+    'Real-time toxicity assessment',
+    'AlphaFold protein structures',
+  ];
+
   return (
-    <div className="min-h-[calc(100vh-5rem)] mt-8">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden mesh-gradient-bg min-h-[85vh] flex items-center justify-center -mt-24 pt-24 pb-20">
-
-        {/* Animated Background Elements */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary-200/40 rounded-full blur-[120px] animate-pulse"></div>
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
-          <div className="text-center mb-16 animate-fadeIn">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-md text-primary-700 rounded-full text-xs font-semibold mb-8 border border-primary-100 shadow-sm ring-1 ring-primary-50 hover:bg-white/80 transition-colors cursor-default">
-              <Sparkles className="w-3 h-3 text-primary-500" />
-              <span>Next-Gen AI Drug Discovery</span>
-            </div>
-
-            <h1 className="text-6xl md:text-8xl font-black text-slate-900 mb-6 tracking-tight leading-none glow-text">
-              Accelerate <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-primary-700 start-text-gradient">Discovery</span>
+    <div>
+      {/* Hero Section with smooth subtle background */}
+      <div className="relative overflow-hidden min-h-screen flex items-center pt-24">
+        {/* Base gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-indigo-50"></div>
+        
+        {/* Animated color orbs - smooth and spread */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-20 left-1/4 w-[500px] h-[500px] bg-gradient-to-br from-blue-300 to-blue-200 rounded-full mix-blend-multiply filter blur-[120px] animate-blob"></div>
+          <div className="absolute top-1/3 right-1/4 w-[450px] h-[450px] bg-gradient-to-br from-indigo-300 to-indigo-200 rounded-full mix-blend-multiply filter blur-[120px] animate-blob animation-delay-2000"></div>
+          <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] bg-gradient-to-br from-purple-300 to-purple-200 rounded-full mix-blend-multiply filter blur-[120px] animate-blob animation-delay-4000"></div>
+        </div>
+        
+        {/* Decorative grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#3b82f615_1px,transparent_1px),linear-gradient(to_bottom,#3b82f615_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
+        
+        {/* Subtle vignette */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/40"></div>
+        
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 w-full">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight tracking-tight">
+              Transform Disease Queries into
+              <span className="block text-blue-600 mt-1">Drug Candidates</span>
             </h1>
-
-            <p className="text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed mb-12 font-light">
-              Unlock the power of <span className="text-primary-700 font-medium">AlphaFold 3</span> and <span className="text-primary-700 font-medium">BioMistral-7B</span> to discover ranked drug candidates in seconds.
+            
+            <p className="text-base text-gray-600 max-w-xl mx-auto leading-relaxed mb-10">
+              Discover ranked drug candidates in seconds using Open Targets, ChEMBL, 
+              AlphaFold, and AI-powered analysis.
             </p>
+          </div>
 
-            {/* Search Bar Container */}
-            <div className="flex justify-center mb-10">
-              <div className="w-full max-w-4xl bg-white/40 backdrop-blur-xl p-3 rounded-3xl border border-white/60 shadow-xl ring-1 ring-slate-900/5 hover:bg-white/60 transition-all duration-500">
-                <div className="bg-white rounded-2xl overflow-hidden shadow-inner">
-                  <SearchBar onSearch={handleSearch} isLoading={isSearching} />
-                </div>
-              </div>
-            </div>
+          {/* Search Bar */}
+          <div className="flex justify-center mb-10">
+            <SearchBar onSearch={handleSearch} isLoading={isSearching} />
+          </div>
 
-            {/* Example Searches */}
-            <div className="flex flex-wrap justify-center gap-3 opacity-90">
-              <span className="text-sm text-slate-400 font-medium mr-2 self-center">Try searching:</span>
+          {/* Example Searches */}
+          <div className="text-center mb-12">
+            <p className="text-xs text-gray-500 mb-2 font-medium">Try an example:</p>
+            <div className="flex flex-wrap justify-center gap-2">
               {exampleSearches.map((example) => (
                 <button
                   key={example}
                   onClick={() => handleSearch(example)}
-                  className="px-4 py-1.5 bg-white border border-slate-200 rounded-full text-xs text-slate-600 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 transition-all font-medium shadow-sm"
+                  className="px-2.5 py-1 bg-white border border-gray-200 rounded-md text-xs text-gray-700 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 transition-all font-medium shadow-sm"
                 >
                   {example}
                 </button>
@@ -109,10 +121,14 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Scroll Indicator */}
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-2 opacity-50 animate-bounce">
-            <span className="text-[10px] uppercase tracking-widest text-slate-400">Scroll to Explore</span>
-            <div className="w-px h-12 bg-gradient-to-b from-slate-400 to-transparent"></div>
+          {/* Minimal Benefits */}
+          <div className="flex flex-wrap justify-center gap-6 text-xs text-gray-500">
+            {benefits.map((benefit, index) => (
+              <div key={index} className="flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                <span>{benefit}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

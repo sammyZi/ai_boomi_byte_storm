@@ -1,75 +1,73 @@
+'use client';
+
 import Link from 'next/link';
 import { ReactNode } from 'react';
-import { Beaker, Home, Info, FileText } from 'lucide-react';
+import { Pill } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
+  const pathname = usePathname();
+  const isResultsPage = pathname === '/results';
+
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Enhanced Floating Navbar */}
-      <header className="sticky top-6 z-50 px-4 sm:px-6 lg:px-8">
-        <nav className="max-w-5xl mx-auto bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-200/50 hover:shadow-3xl transition-all duration-300">
-          <div className="flex justify-center items-center h-16 px-6 gap-8">
-            {/* Logo with glow effect */}
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="relative">
-                <div className="absolute inset-0 bg-blue-600 rounded-xl blur-md opacity-40 group-hover:opacity-60 transition-opacity"></div>
-                <div className="relative w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                  <Beaker className="w-6 h-6 text-white" strokeWidth={2.5} />
-                </div>
+    <div className="min-h-screen flex flex-col">
+      {/* Transparent Glass Navbar */}
+      <header className="fixed top-4 left-0 right-0 z-50 px-4 sm:px-6 lg:px-8">
+        <nav className="max-w-2xl mx-auto bg-white/40 backdrop-blur-2xl rounded-full shadow-lg border border-blue-200/60 px-5 py-4 ring-1 ring-blue-100/40 shadow-blue-100/30">
+          <div className="flex justify-center items-center gap-10">
+            {/* Logo - Left Side */}
+            <Link href="/" className="flex items-center gap-2 group absolute left-5">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-blue-500/30">
+                <Pill className="w-5 h-5 text-white" strokeWidth={2.5} />
               </div>
-              <div className="hidden sm:block">
-                <span className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                  DrugDiscovery
-                </span>
-                <span className="block text-xs text-gray-500 font-medium -mt-0.5">AI Platform</span>
-              </div>
+              <span className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                DrugDiscovery
+              </span>
             </Link>
 
-            {/* Navigation Links - centered, no background */}
-            <div className="flex items-center gap-1">
+            {/* Navigation Links - Centered */}
+            <div className="flex items-center gap-6">
               <Link
                 href="/"
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-lg transition-all group"
+                className="text-base font-medium text-blue-600 hover:text-blue-700 transition-colors"
               >
-                <Home className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="hidden sm:inline">Home</span>
+                Home
               </Link>
               <Link
                 href="/about"
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-lg transition-all group"
+                className="text-base font-medium text-gray-700 hover:text-blue-600 transition-colors"
               >
-                <Info className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="hidden sm:inline">About</span>
+                About
               </Link>
               <a
-                href="http://localhost:8000/docs"
+                href="http://10.114.2.144:8000/docs"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-lg transition-all group"
+                className="text-base font-medium text-gray-700 hover:text-blue-600 transition-colors"
               >
-                <FileText className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="hidden sm:inline">API</span>
+                API
               </a>
             </div>
           </div>
         </nav>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content - No padding top, starts from top */}
       <main className="flex-1">{children}</main>
 
-      {/* Compact Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-auto">
+      {/* Compact Footer - Hidden on results page */}
+      {!isResultsPage && (
+        <footer className="bg-white border-t border-gray-200 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <div className="flex items-center space-x-2 mb-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
-                  <Beaker className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                  <Pill className="w-5 h-5 text-white" />
                 </div>
                 <span className="font-bold text-gray-900">DrugDiscovery AI</span>
               </div>
@@ -133,6 +131,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </div>
       </footer>
+      )}
     </div>
   );
 }

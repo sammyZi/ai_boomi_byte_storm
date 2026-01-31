@@ -28,15 +28,17 @@ function ResultsContent() {
 
   if (!query || query.length < 2) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <ErrorMessage
-          error={{
-            error_code: 'INVALID_QUERY',
-            message: 'Please provide a valid disease name (2-200 characters)',
-            timestamp: new Date().toISOString(),
-          }}
-          onRetry={handleSearchAgain}
-        />
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-gray-50 pt-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <ErrorMessage
+            error={{
+              error_code: 'INVALID_QUERY',
+              message: 'Please provide a valid disease name (2-200 characters)',
+              timestamp: new Date().toISOString(),
+            }}
+            onRetry={handleSearchAgain}
+          />
+        </div>
       </div>
     );
   }
@@ -44,8 +46,10 @@ function ResultsContent() {
   if (isLoading) {
     console.log('Loading results for:', query);
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <LoadingIndicator message={`Discovering drug candidates for "${query}"...`} />
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-gray-50 pt-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <LoadingIndicator message={`Discovering drug candidates for "${query}"...`} />
+        </div>
       </div>
     );
   }
@@ -53,8 +57,10 @@ function ResultsContent() {
   if (isError && error) {
     console.error('Error fetching results:', error);
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <ErrorMessage error={error} onRetry={handleRetry} />
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-gray-50 pt-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <ErrorMessage error={error} onRetry={handleRetry} />
+        </div>
       </div>
     );
   }
@@ -63,17 +69,21 @@ function ResultsContent() {
     // Log for debugging
     console.log('No candidates found. Data:', data);
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <EmptyState onSearchAgain={handleSearchAgain} />
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-gray-50 pt-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <EmptyState onSearchAgain={handleSearchAgain} />
+        </div>
       </div>
     );
   }
 
   console.log('Displaying results:', data.candidates.length, 'candidates');
   return (
-    <div className="min-h-screen bg-gray-50 mt-8">
-      <ResultsHeader data={data} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-gray-50">
+      <div className="pt-24 pb-8">
+        <ResultsHeader data={data} />
+      </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <CandidateList candidates={data.candidates} />
       </div>
     </div>
@@ -84,8 +94,10 @@ export default function ResultsPage() {
   return (
     <Suspense
       fallback={
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <LoadingIndicator />
+        <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-gray-50 pt-24">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <LoadingIndicator />
+          </div>
         </div>
       }
     >
