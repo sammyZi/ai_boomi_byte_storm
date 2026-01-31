@@ -350,7 +350,7 @@ This implementation plan focuses on building the backend drug discovery platform
     - Test concurrent processing
     - _Requirements: 9.1, 9.7, 9.8, 10.1, 10.2, 10.3_
 
-- [ ] 13. Checkpoint - Ensure pipeline tests pass
+- [x] 13. Checkpoint - Ensure pipeline tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 14. Implement FastAPI backend endpoints
