@@ -72,10 +72,13 @@ def run_docking_task(
         # Execute the docking
         job = tasks.run_docking_job(job.id)
         
+        # Handle status - Pydantic coerces str Enum to string
+        status_str = job.status.value if hasattr(job.status, 'value') else str(job.status)
+        
         # Return result summary
         return {
             "job_id": job.id,
-            "status": job.status.value,
+            "status": status_str,
             "error": job.error_message,
             "results_count": len(job.results) if job.results else 0,
             "best_affinity": job.results[0].binding_affinity if job.results else None
@@ -160,7 +163,9 @@ def get_queue_status() -> Dict[str, Any]:
     }
     
     for job in all_jobs:
-        status_counts[job.status.value] = status_counts.get(job.status.value, 0) + 1
+        # Handle both enum and string status values
+        status_str = job.status.value if hasattr(job.status, 'value') else str(job.status)
+        status_counts[status_str] = status_counts.get(status_str, 0) + 1
     
     return {
         "total_jobs": len(all_jobs),

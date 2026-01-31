@@ -37,16 +37,23 @@ class DockingResultsParser:
         pattern = r'^\s*(\d+)\s+([-\d.]+)\s+([\d.]+)\s+([\d.]+)\s*$'
         
         in_results_section = False
+        past_separator = False
         
         for line in stdout.split('\n'):
             # Detect start of results table
             if 'mode' in line.lower() and 'affinity' in line.lower():
                 in_results_section = True
+                past_separator = False
                 continue
             
             if in_results_section:
-                # Check for separator line
+                # Check for separator line (marks end of header)
                 if line.strip().startswith('-----'):
+                    past_separator = True
+                    continue
+                
+                # Skip header continuation lines (before separator)
+                if not past_separator:
                     continue
                 
                 # Try to parse result line

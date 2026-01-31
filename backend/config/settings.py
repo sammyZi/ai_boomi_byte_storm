@@ -54,6 +54,12 @@ class Settings(BaseSettings):
         description="Ollama request timeout in seconds"
     )
     
+    # Database Configuration
+    database_url: str = Field(
+        default="sqlite+aiosqlite:///./docking.db",
+        description="Database connection URL (SQLite for dev, PostgreSQL for prod)"
+    )
+    
     # Cache Configuration (Requirement 13.1)
     redis_url: str = Field(
         default="redis://localhost:6379",
