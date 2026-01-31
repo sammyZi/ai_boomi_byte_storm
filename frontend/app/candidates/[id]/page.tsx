@@ -271,12 +271,30 @@ function CandidateDetailsContent() {
                     <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 border border-blue-100 shadow-lg">
                         <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
                             <Brain className="w-5 h-5 text-purple-600" />
-                            AI Analysis
+                            Compound Summary
                         </h3>
                         <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 max-h-64 overflow-y-auto">
-                            <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-line">
-                                {candidate.ai_analysis || "No AI analysis available for this candidate."}
-                            </p>
+                            {candidate.ai_analysis ? (
+                                <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-line">
+                                    {candidate.ai_analysis}
+                                </p>
+                            ) : (
+                                <div className="text-xs text-gray-600 space-y-2">
+                                    <p className="font-semibold">
+                                        {candidate.molecule.name} shows {candidate.molecule.pchembl_value >= 7 ? 'strong' : candidate.molecule.pchembl_value >= 6 ? 'moderate' : 'weak'} binding affinity (pChEMBL: {candidate.molecule.pchembl_value.toFixed(1)}) to {candidate.target.gene_symbol}.
+                                    </p>
+                                    <p>
+                                        Drug-likeness score of {candidate.properties.drug_likeness_score.toFixed(2)} with {candidate.properties.lipinski_violations} Lipinski violation{candidate.properties.lipinski_violations !== 1 ? 's' : ''}.
+                                    </p>
+                                    <p>
+                                        Safety profile indicates <span className={`font-bold ${
+                                            candidate.toxicity.risk_level === 'low' ? 'text-green-700' :
+                                            candidate.toxicity.risk_level === 'medium' ? 'text-yellow-700' :
+                                            'text-red-700'
+                                        }`}>{candidate.toxicity.risk_level} risk</span> with toxicity score of {candidate.toxicity.toxicity_score.toFixed(2)}.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

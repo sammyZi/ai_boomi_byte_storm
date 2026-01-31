@@ -141,9 +141,9 @@ class DiscoveryPipeline:
             logger.info(f"Ranking {len(candidates)} candidates")
             ranked_candidates = self.scoring_engine.rank_candidates(candidates)
             
-            # Step 7: Generate AI analysis for top candidates
-            logger.info("Generating AI analysis for top candidates")
-            await self._add_ai_analysis(ranked_candidates)
+            # Step 7: Generate AI analysis for top candidates (DISABLED for performance)
+            # logger.info("Generating AI analysis for top candidates")
+            # await self._add_ai_analysis(ranked_candidates)
             
             # Calculate processing time
             processing_time = (datetime.utcnow() - start_time).total_seconds()
