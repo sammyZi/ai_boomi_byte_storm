@@ -206,40 +206,40 @@ This implementation plan focuses on building the backend drug discovery platform
     - Test missing structure handling
     - _Requirements: 2.1, 2.2, 2.5, 2.6_
 
-- [ ] 8. Implement ChEMBL API client
-  - [ ] 8.1 Create ChEMBLClient class
+- [x] 8. Implement ChEMBL API client
+  - [x] 8.1 Create ChEMBLClient class
     - Implement get_bioactive_molecules() method
     - Parse API responses into Molecule objects
     - _Requirements: 3.1_
   
-  - [ ] 8.2 Implement molecule filtering by activity
+  - [x] 8.2 Implement molecule filtering by activity
     - Filter molecules with pChEMBL >= 6.0
     - Limit to 100 molecules per target
     - _Requirements: 3.2, 3.3_
   
-  - [ ] 8.3 Write property test for molecule filtering
+  - [x] 8.3 Write property test for molecule filtering
     - **Property 6: Molecule Filtering by Activity**
     - **Validates: Requirements 3.2, 3.3**
   
-  - [ ] 8.4 Implement molecule deduplication
+  - [x] 8.4 Implement molecule deduplication
     - Deduplicate by ChEMBL ID across targets
     - Associate molecules with all relevant targets
     - _Requirements: 3.4_
   
-  - [ ] 8.5 Write property test for deduplication
+  - [x] 8.5 Write property test for deduplication
     - **Property 7: Molecule Deduplication**
     - **Validates: Requirements 3.4**
   
-  - [ ] 8.6 Implement SMILES validation
+  - [x] 8.6 Implement SMILES validation
     - Validate SMILES using RDKit
     - Exclude invalid SMILES from results
     - _Requirements: 3.5, 3.6_
   
-  - [ ] 8.7 Implement caching for molecules
+  - [x] 8.7 Implement caching for molecules
     - Cache with 24-hour TTL
     - _Requirements: 3.7_
   
-  - [ ] 8.8 Write unit tests for ChEMBL client
+  - [x] 8.8 Write unit tests for ChEMBL client
     - Test molecule filtering
     - Test deduplication logic
     - Test SMILES validation
