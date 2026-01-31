@@ -85,7 +85,7 @@ class OpenTargetsClient:
         # GraphQL query to search for disease
         query = """
         query SearchDisease($queryString: String!) {
-          search(queryString: $queryString, entityNames: ["disease"], page: {size: 1}) {
+          search(queryString: $queryString, entityNames: ["disease"], page: {index: 0, size: 1}) {
             hits {
               id
               name
@@ -123,7 +123,7 @@ class OpenTargetsClient:
         query = """
         query DiseaseTargets($diseaseId: String!) {
           disease(efoId: $diseaseId) {
-            associatedTargets(page: {size: 50}) {
+            associatedTargets(page: {index: 0, size: 50}) {
               rows {
                 target {
                   id

@@ -1,0 +1,4 @@
+# file: D:\ai_boomi\backend\app\models.py
+# hypothesis_version: 6.151.4
+
+[0.0, 0.5, 0.6, 0.9, 1.0, 100.0, 200, '0.1.0', 'API version', 'ChEMBL identifier', 'Full protein name', 'Molecular properties', 'Molecule information', 'Molecule name', 'SMILES notation', 'Toxicity assessment', 'Toxicity score (0-1)', 'True if pLDDT < 70', 'UniProt identifier', 'canonical_smiles', 'high', 'low', 'medium', 'risk_level', 'smiles']
