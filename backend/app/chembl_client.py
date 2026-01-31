@@ -237,7 +237,10 @@ class ChEMBLClient:
                 continue
             
             # Extract additional data
-            molecule_name = activity.get("molecule_pref_name", chembl_id)
+            molecule_name = activity.get("molecule_pref_name")
+            if not molecule_name:
+                # Use ChEMBL ID as fallback name if preferred name is not available
+                molecule_name = chembl_id
             activity_type = activity.get("standard_type", "Unknown")
             
             # Create Molecule object
