@@ -7,11 +7,26 @@ pydantic-settings==2.1.0
 # HTTP Client
 httpx==0.26.0
 
+# Database
+sqlalchemy[asyncio]==2.0.25
+aiosqlite==0.19.0  # Async SQLite for development
+alembic==1.13.1  # Database migrations
+
 # Caching
 redis==5.0.1
 
 # Cheminformatics
 rdkit==2023.9.4
+
+# Molecular Docking
+openbabel-wheel==3.1.1.19  # For PDBQT conversion
+meeko==0.5.0  # For ligand preparation
+scipy>=1.11.0  # Required by meeko
+gemmi>=0.6.0  # Required by meeko
+
+# Task Queue (for async docking jobs)
+celery[redis]==5.3.6
+flower==2.0.1  # Celery monitoring
 
 # Testing
 hypothesis==6.98.3

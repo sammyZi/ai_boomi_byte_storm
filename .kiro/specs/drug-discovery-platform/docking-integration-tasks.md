@@ -12,7 +12,7 @@ This implementation plan adds molecular docking capabilities to the drug discove
 
 ## Tasks
 
-- [ ] 1. Set up infrastructure and dependencies
+- [x] 1. Set up infrastructure and dependencies
   - Install AutoDock Vina on backend server
   - Install Celery and Redis for job queue
   - Install Open Babel and Meeko for PDBQT conversion
@@ -21,8 +21,8 @@ This implementation plan adds molecular docking capabilities to the drug discove
   - Create database tables for docking jobs and results
   - _Requirements: 6.1, 11.1, 11.2_
 
-- [ ] 2. Implement PDBQT Converter for Proteins
-  - [ ] 2.1 Create PDBQTConverter class with protein conversion method
+- [x] 2. Implement PDBQT Converter for Proteins
+  - [x] 2.1 Create PDBQTConverter class with protein conversion method
     - Parse PDB data from existing AlphaFold structures
     - Add hydrogen atoms using Open Babel
     - Assign Gasteiger partial charges
@@ -31,18 +31,18 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Write PDBQT format output
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-  - [ ] 2.2 Write property test for protein PDBQT conversion
+  - [x] 2.2 Write property test for protein PDBQT conversion
     - **Property 5: PDB to PDBQT Conversion**
     - **Validates: Requirements 2.1, 2.7**
 
-  - [ ] 2.3 Write unit tests for protein conversion
+  - [x] 2.3 Write unit tests for protein conversion
     - Test with sample protein structures from existing AlphaFold data
     - Test error handling for invalid PDB data
     - Test metal ion detection and preservation
     - _Requirements: 2.1, 2.5, 2.6_
 
-- [ ] 3. Implement PDBQT Converter for Ligands
-  - [ ] 3.1 Add ligand conversion method to PDBQTConverter
+- [x] 3. Implement PDBQT Converter for Ligands
+  - [x] 3.1 Add ligand conversion method to PDBQTConverter
     - Parse SMILES from existing Molecule data (reuse RDKit from current app)
     - Generate 3D conformer using ETKDG algorithm
     - Optimize geometry with MMFF94 force field
@@ -52,21 +52,21 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Set root atom for torsion tree
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
 
-  - [ ] 3.2 Write property test for SMILES to 3D generation
+  - [x] 3.2 Write property test for SMILES to 3D generation
     - **Property 9: SMILES to 3D Structure Generation**
     - **Validates: Requirements 3.1**
 
-  - [ ] 3.3 Write unit tests for ligand conversion
+  - [x] 3.3 Write unit tests for ligand conversion
     - Test with molecules from existing ChEMBL data
     - Test with complex molecules (multiple rings, stereocenters)
     - Test error handling for invalid SMILES
     - _Requirements: 3.1, 3.8_
 
-- [ ] 4. Checkpoint - Ensure PDBQT conversion tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+- [x] 4. Checkpoint - Ensure PDBQT conversion tests pass
+  - All 54 PDBQT tests passing (26 protein + 28 ligand)
 
-- [ ] 5. Implement Grid Box Calculator
-  - [ ] 5.1 Create GridBoxCalculator class
+- [x] 5. Implement Grid Box Calculator
+  - [x] 5.1 Create GridBoxCalculator class
     - Parse PDB data to extract atom coordinates
     - Calculate geometric center (mean of all coordinates)
     - Set default grid box dimensions (25 Å × 25 Å × 25 Å)
@@ -74,39 +74,40 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Validate dimensions are within 10-50 Å range
     - _Requirements: 4.1, 4.2, 4.3, 4.5, 4.6_
 
-  - [ ] 5.2 Write property test for geometric center calculation
+  - [x] 5.2 Write property test for geometric center calculation
     - **Property 14: Geometric Center Calculation**
     - **Validates: Requirements 4.1, 4.2**
 
-  - [ ] 5.3 Write unit tests for grid box calculator
-    - Test with various protein sizes from existing data
+  - [x] 5.3 Write unit tests for grid box calculator
+    - 30 tests covering initialization, PDB calculation, binding site, coordinates, errors, property-based tests
     - Test edge cases (very small/large proteins)
     - Test error handling and fallback to defaults
     - _Requirements: 4.1, 4.7_
 
-- [ ] 6. Implement Configuration File Generator
-  - [ ] 6.1 Create ConfigFileGenerator class
+- [x] 6. Implement Configuration File Generator
+- [x] 6.1 Create ConfigFileGenerator class
     - Generate AutoDock Vina configuration file format
     - Include all required fields (receptor, ligand, center, size, parameters)
     - Set default docking parameters (exhaustiveness=8, num_modes=9, energy_range=3)
     - Validate configuration completeness
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9_
 
-  - [ ] 6.2 Write property test for configuration completeness
+  - [x] 6.2 Write property test for configuration completeness
     - **Property 17: Configuration File Completeness**
-    - **Validates: Requirements 5.2, 5.3, 5.4, 5.5, 5.9**
+    - **Validates: Requirements 5.2, 5.3, 5.4, 5.5, 5.9_
 
-  - [ ] 6.3 Write unit tests for configuration generator
-    - Test with default parameters
+  - [x] 6.3 Write unit tests for configuration generator
+    - 28 tests covering init, generate_config, default/custom params, error handling, validation, format, completeness
     - Test with custom parameters
     - Test file path formatting
     - _Requirements: 5.1, 5.10_
 
-- [ ] 7. Checkpoint - Ensure utility components tests pass
+- [x] 7. Checkpoint - Ensure utility components tests pass
+  - All 112 tests passing (54 PDBQT + 30 grid calculator + 28 config generator)
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 8. Implement AutoDock Vina Executor
-  - [ ] 8.1 Create VinaExecutor class
+- [x] 8. Implement AutoDock Vina Executor
+  - [x] 8.1 Create VinaExecutor class
     - Execute AutoDock Vina subprocess with configuration file
     - Capture stdout and stderr output
     - Parse Vina output to extract binding affinity scores
@@ -115,15 +116,15 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Handle execution errors and return detailed error messages
     - _Requirements: 6.1, 6.5, 6.6, 6.7, 12.4, 12.5_
 
-  - [ ] 8.2 Write unit tests for Vina executor
-    - Test successful execution with sample files
+  - [x] 8.2 Write unit tests for Vina executor
+    - 32 tests covering init, path discovery, sync/async execution, timeout, errors, output parsing
     - Test timeout handling
     - Test error handling (invalid files, Vina not installed)
     - Test output parsing
     - _Requirements: 6.1, 6.9, 12.4_
 
-- [ ] 9. Implement Docking Results Parser
-  - [ ] 9.1 Create DockingResultsParser class
+- [x] 9. Implement Docking Results Parser
+  - [x] 9.1 Create DockingResultsParser class
     - Parse AutoDock Vina output PDBQT file
     - Extract binding affinity scores for all poses
     - Extract RMSD values between poses
@@ -132,14 +133,14 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Generate summary statistics
     - _Requirements: 6.7, 9.1, 9.2, 9.3, 9.4_
 
-  - [ ] 9.2 Write unit tests for results parser
-    - Test with sample Vina output files
+  - [x] 9.2 Write unit tests for results parser
+    - 41 tests covering stdout parsing, PDBQT parsing, best pose, summary stats, combined parsing, edge cases
     - Test with multiple poses
     - Test edge cases (single pose, failed docking)
     - _Requirements: 9.1, 9.2, 9.3_
 
-- [ ] 10. Implement Celery Task for Docking Jobs
-  - [ ] 10.1 Create Celery task for async docking execution
+- [x] 10. Implement Celery Task for Docking Jobs
+  - [x] 10.1 Create Celery task for async docking execution
     - Define Celery task `run_docking_job(candidate_id, params)`
     - Retrieve candidate data from existing database
     - Convert protein and ligand to PDBQT (use PDBQTConverter)
@@ -152,54 +153,54 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Clean up temporary files on completion
     - _Requirements: 6.1, 6.2, 6.3, 6.8, 11.1, 11.2_
 
-  - [ ] 10.2 Implement job retry logic
+  - [x] 10.2 Implement job retry logic
     - Retry failed jobs up to 2 times
     - Use exponential backoff (1 min, 5 min)
     - Log retry attempts
     - _Requirements: 11.5_
 
-  - [ ] 10.3 Implement concurrency limits
+  - [x] 10.3 Implement concurrency limits
     - Limit to 3 concurrent docking jobs
     - Queue additional jobs when limit reached
     - _Requirements: 6.3, 11.3_
 
-  - [ ] 10.4 Write unit tests for Celery task
+  - [x] 10.4 Write unit tests for Celery task
     - Test successful docking workflow
     - Test error handling at each stage
     - Test retry logic
     - Test cleanup on success and failure
     - _Requirements: 6.1, 6.9, 11.5_
 
-- [ ] 11. Checkpoint - Ensure docking execution tests pass
+- [x] 11. Checkpoint - Ensure docking execution tests pass ✅ 117 tests passing
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Implement Docking Job Database Models
-  - [ ] 12.1 Create DockingJob model
+- [x] 12. Implement Docking Job Database Models ✅ 26 tests passing
+  - [x] 12.1 Create DockingJob model
     - Fields: id, candidate_id, user_id, status, created_at, started_at, completed_at
     - Fields: grid_params, docking_params, error_message
     - Status enum: queued, running, completed, failed, cancelled
     - Relationships: belongs to candidate, has many results
     - _Requirements: 7.2, 14.1, 14.2_
 
-  - [ ] 12.2 Create DockingResult model
+  - [x] 12.2 Create DockingResult model
     - Fields: id, job_id, pose_number, binding_affinity, rmsd
     - Fields: pdbqt_file_path, created_at
     - Relationships: belongs to job
     - _Requirements: 9.1, 14.3, 14.4_
 
-  - [ ] 12.3 Create database migrations
+  - [x] 12.3 Create database migrations
     - Create tables for DockingJob and DockingResult
     - Add indexes for efficient querying
     - _Requirements: 14.1_
 
-  - [ ] 12.4 Write unit tests for models
+  - [x] 12.4 Write unit tests for models
     - Test model creation and validation
     - Test relationships
     - Test queries
     - _Requirements: 14.1, 14.2_
 
-- [ ] 13. Implement Docking Service Layer
-  - [ ] 13.1 Create DockingService class
+- [x] 13. Implement Docking Service Layer ✅ 36 tests passing
+  - [x] 13.1 Create DockingService class
     - Method: submit_docking_job(candidate_ids, params) -> job_ids
     - Method: get_job_status(job_id) -> status_info
     - Method: get_job_results(job_id) -> results
@@ -210,7 +211,7 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Queue Celery tasks for execution
     - _Requirements: 1.4, 7.1, 7.6, 7.9, 15.6_
 
-  - [ ] 13.2 Write unit tests for docking service
+  - [x] 13.2 Write unit tests for docking service
     - Test job submission
     - Test status retrieval
     - Test results retrieval
@@ -218,8 +219,8 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Test job limits
     - _Requirements: 1.4, 7.6, 15.6_
 
-- [ ] 14. Implement Docking API Endpoints
-  - [ ] 14.1 Create API endpoint POST /api/docking/submit
+- [x] 14. Implement Docking API Endpoints ✅ 28 tests passing
+  - [x] 14.1 Create API endpoint POST /api/docking/submit
     - Define request schema (candidate_ids, grid_params, docking_params)
     - Define response schema (job_ids, estimated_time)
     - Validate request payload
@@ -227,58 +228,58 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Return job IDs and queue position
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7_
 
-  - [ ] 14.2 Create API endpoint GET /api/docking/jobs/{job_id}/status
+  - [x] 14.2 Create API endpoint GET /api/docking/jobs/{job_id}/status
     - Return job status (queued, running, completed, failed)
     - Return progress percentage
     - Return estimated time remaining
     - Return error message if failed
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 10.8_
 
-  - [ ] 14.3 Create API endpoint GET /api/docking/jobs/{job_id}/results
+  - [x] 14.3 Create API endpoint GET /api/docking/jobs/{job_id}/results
     - Validate job is completed
     - Return binding affinity scores for all poses
     - Return PDBQT file URLs for download
     - Return summary statistics
     - _Requirements: 9.1, 9.5, 9.9, 10.9_
 
-  - [ ] 14.4 Create API endpoint DELETE /api/docking/jobs/{job_id}
+  - [x] 14.4 Create API endpoint DELETE /api/docking/jobs/{job_id}
     - Cancel running or queued job
     - Clean up temporary files
     - Update job status to cancelled
     - _Requirements: 7.6, 7.7, 10.10_
 
-  - [ ] 14.5 Create API endpoint GET /api/docking/jobs
+  - [x] 14.5 Create API endpoint GET /api/docking/jobs
     - Return user's job history
     - Support filtering by status, date, target
     - Support pagination
     - _Requirements: 7.9, 14.6, 14.7_
 
-  - [ ] 14.6 Write unit tests for API endpoints
+  - [x] 14.6 Write unit tests for API endpoints
     - Test valid requests
     - Test invalid requests (validation errors)
     - Test authentication and authorization
     - Test error scenarios
     - _Requirements: 10.1, 10.2, 10.10_
 
-- [ ] 15. Checkpoint - Ensure backend API tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+- [x] 15. Checkpoint - Ensure backend API tests pass ✅ 90 docking tests passing
+  - All docking-related tests pass (DB models, service, API endpoints)
 
-- [ ] 16. Implement Frontend Docking Button Component
-  - [ ] 16.1 Add "Run Docking" button to CandidateCard component
+- [x] 16. Implement Frontend Docking Button Component ✅
+  - [x] 16.1 Add "Run Docking" button to CandidateCard component
     - Add button to existing CandidateCard.tsx
     - Show button only when protein structure is available
     - Handle button click to open docking modal
     - Integrate with existing UI styling
     - _Requirements: 1.1, 13.1_
 
-  - [ ] 16.2 Write unit tests for docking button
+  - [x] 16.2 Write unit tests for docking button
     - Test button rendering
     - Test button click handler
     - Test conditional display
     - _Requirements: 13.1_
 
-- [ ] 17. Implement Docking Submission Modal
-  - [ ] 17.1 Create DockingSubmissionModal component
+- [x] 17. Implement Docking Submission Modal ✅ 19 tests passing
+  - [x] 17.1 Create DockingSubmissionModal component
     - Display candidate summary (molecule name, target, scores)
     - Show estimated docking time (5-15 minutes)
     - Add collapsible advanced options section
@@ -287,22 +288,22 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Add "Run Docking" and "Cancel" buttons
     - _Requirements: 13.3, 13.4, 13.5, 13.6_
 
-  - [ ] 17.2 Implement modal submission logic
+  - [x] 17.2 Implement modal submission logic
     - Call docking API on submit
     - Handle API errors
     - Close modal on success
     - Open job tracking interface
     - _Requirements: 13.6, 13.7_
 
-  - [ ] 17.3 Write unit tests for docking modal
+  - [x] 17.3 Write unit tests for docking modal
     - Test modal rendering
     - Test parameter inputs
     - Test submission
     - Test error handling
     - _Requirements: 13.3, 13.10_
 
-- [ ] 18. Implement Docking Job Tracking Interface
-  - [ ] 18.1 Create DockingJobTracker component
+- [x] 18. Implement Docking Job Tracking Interface ✅ 19 tests passing
+  - [x] 18.1 Create DockingJobTracker component
     - Display job status (queued, running, completed, failed)
     - Display progress bar with percentage
     - Display current step description
@@ -312,15 +313,15 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Redirect to results page when completed
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 13.8_
 
-  - [ ] 18.2 Write unit tests for job tracker
+  - [x] 18.2 Write unit tests for job tracker
     - Test status display
     - Test progress updates
     - Test polling logic
     - Test cancellation
     - _Requirements: 7.1, 7.5, 13.8_
 
-- [ ] 19. Implement Docking Results Visualization
-  - [ ] 19.1 Create DockingResultsViewer component
+- [x] 19. Implement Docking Results Visualization ✅ 32 tests passing
+  - [x] 19.1 Create DockingResultsViewer component
     - Reuse existing ProteinViewer3D component for protein structure
     - Overlay ligand poses on protein structure
     - Display protein in cartoon representation
@@ -331,26 +332,26 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Add rotation, zoom, pan controls (reuse existing)
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8_
 
-  - [ ] 19.2 Add interaction highlighting
+  - [x] 19.2 Add interaction highlighting
     - Detect and display hydrogen bonds
     - Detect and display hydrophobic contacts
     - Add toggle to show/hide interactions
     - _Requirements: 8.9_
 
-  - [ ] 19.3 Add download button for results
+  - [x] 19.3 Add download button for results
     - Download PDBQT files
     - Download summary CSV
     - _Requirements: 8.10_
 
-  - [ ] 19.4 Write unit tests for results viewer
+  - [x] 19.4 Write unit tests for results viewer
     - Test component rendering
     - Test pose switching
     - Test interaction display
     - Test download functionality
     - _Requirements: 8.1, 8.7, 8.10_
 
-- [ ] 20. Implement Docking Results Analysis Panel
-  - [ ] 20.1 Create DockingResultsAnalysis component
+- [x] 20. Implement Docking Results Analysis Panel ✅ 22 tests passing
+  - [x] 20.1 Create DockingResultsAnalysis component
     - Display summary table of all poses
     - Show binding affinity scores ranked
     - Show RMSD values
@@ -359,20 +360,20 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Show improvement/difference from prediction
     - _Requirements: 9.1, 9.2, 9.4, 9.5, 9.6_
 
-  - [ ] 20.2 Integrate docking scores with candidate ranking
+  - [x] 20.2 Integrate docking scores with candidate ranking
     - Update composite score calculation to include docking score
     - Re-rank candidates based on actual docking results
     - Show before/after ranking comparison
     - _Requirements: 9.6, 9.7_
 
-  - [ ] 20.3 Write unit tests for results analysis
+  - [x] 20.3 Write unit tests for results analysis
     - Test table rendering
     - Test score calculations
     - Test ranking updates
     - _Requirements: 9.1, 9.5, 9.7_
 
-- [ ] 21. Implement Docking Job History Page
-  - [ ] 21.1 Create DockingJobHistory page component
+- [x] 21. Implement Docking Job History Page ✅ 25 tests passing
+  - [x] 21.1 Create DockingJobHistory page component
     - Display table of past docking jobs
     - Show job ID, candidate, target, status, date
     - Add filters (status, date range, target)
@@ -381,15 +382,15 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Add "Re-run" button for failed jobs
     - _Requirements: 7.9, 14.6, 14.7, 14.8, 14.10_
 
-  - [ ] 21.2 Write unit tests for job history page
+  - [x] 21.2 Write unit tests for job history page
     - Test table rendering
     - Test filtering
     - Test pagination
     - Test navigation to results
     - _Requirements: 14.6, 14.7_
 
-- [ ] 22. Integrate Docking into Existing Candidate Details Page
-  - [ ] 22.1 Update candidate details page (candidates/[id]/page.tsx)
+- [x] 22. Integrate Docking into Existing Candidate Details Page ✅ 15 tests passing
+  - [x] 22.1 Update candidate details page (candidates/[id]/page.tsx)
     - Add "Docking Results" tab if docking has been run
     - Display DockingResultsViewer in tab
     - Display DockingResultsAnalysis in tab
@@ -397,15 +398,22 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Show job tracker if docking is in progress
     - _Requirements: 13.1, 13.7, 13.9_
 
-  - [ ] 22.2 Write integration tests for candidate page
+  - [x] 22.2 Write unit tests for candidate details docking integration
+    - Test tab navigation
+    - Test docking modal opening
+    - Test job tracking display
+    - Test results display
+    - _Requirements: 13.1, 13.7_
+
+  - [x] 22.3 Write integration tests for candidate page
     - Test docking button display
     - Test job tracker display
     - Test results display
     - Test tab navigation
     - _Requirements: 13.1, 13.9_
 
-- [ ] 23. Implement Docking API Client
-  - [ ] 23.1 Create docking API client module (lib/docking-api.ts)
+- [x] 23. Implement Docking API Client ✅ 31 tests passing
+  - [x] 23.1 Create docking API client module (lib/docking-api.ts)
     - Function: submitDockingJob(candidateIds, params)
     - Function: getDockingJobStatus(jobId)
     - Function: getDockingJobResults(jobId)
@@ -415,7 +423,7 @@ This implementation plan adds molecular docking capabilities to the drug discove
     - Handle authentication
     - _Requirements: 10.1, 10.8, 10.9, 10.10_
 
-  - [ ] 23.2 Write unit tests for API client
+  - [x] 23.2 Write unit tests for API client
     - Test API request formatting
     - Test response parsing
     - Test error handling

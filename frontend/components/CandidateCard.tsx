@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, Award, AlertTriangle, Activity } from 'lucide-react';
+import { ArrowRight, Award, AlertTriangle, Activity, Dna } from 'lucide-react';
 import { DrugCandidate } from '@/types';
+import DockingSubmissionModal from './DockingSubmissionModal';
 
 interface CandidateCardProps {
   candidate: DrugCandidate;
@@ -12,11 +14,28 @@ export default function CandidateCard({ candidate }: CandidateCardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get('q');
+  const [showDockingModal, setShowDockingModal] = useState(false);
 
   const handleViewDetails = () => {
     // Navigate to the details page with the query param so we can refetch context
     router.push(`/candidates/${candidate.molecule.chembl_id}?disease=${encodeURIComponent(query || '')}`);
   };
+
+  const handleRunDocking = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click navigation
+    setShowDockingModal(true);
+  };
+
+  const handleDockingSuccess = (jobIds: string[]) => {
+    setShowDockingModal(false);
+    // Navigate to job tracking page with the first job ID
+    if (jobIds.length > 0) {
+      router.push(`/docking/jobs/${jobIds[0]}`);
+    }
+  };
+
+  // Check if protein structure is available (has uniprot_id)
+  const hasProteinStructure = !!candidate.target.uniprot_id;
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
@@ -75,6 +94,18 @@ export default function CandidateCard({ candidate }: CandidateCardProps) {
               <AlertTriangle className="w-4 h-4" />
               <span>{candidate.toxicity.risk_level.charAt(0).toUpperCase() + candidate.toxicity.risk_level.slice(1)} Risk</span>
             </div>
+
+            {/* Run Docking Button - Only show if protein structure available */}
+            {hasProteinStructure && (
+              <button
+                onClick={handleRunDocking}
+                className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-sm font-semibold shadow-sm hover:shadow-md hover:from-emerald-600 hover:to-teal-600 transition-all"
+                title="Run molecular docking simulation"
+              >
+                <Dna className="w-4 h-4" />
+                <span>Run Docking</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -95,7 +126,15 @@ export default function CandidateCard({ candidate }: CandidateCardProps) {
           </div>
         </div>
       </div>
+
+      {/* Docking Submission Modal */}
+      {showDockingModal && (
+        <DockingSubmissionModal
+          candidate={candidate}
+          onClose={() => setShowDockingModal(false)}
+          onSubmitSuccess={handleDockingSuccess}
+        />
+      )}
     </div>
   );
 }
-

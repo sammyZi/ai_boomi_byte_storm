@@ -19,6 +19,21 @@ from app.discovery_pipeline import DiscoveryPipeline
 from app.biomistral_engine import BioMistralEngine
 from app.rate_limiter import RateLimiter, RateLimitMiddleware
 from app.security import anonymize_ip, get_client_ip
+from app.docking.models import (
+    DockingJobRequest,
+    DockingJobResponse,
+    DockingStatusResponse,
+    DockingJob,
+    DockingJobStatus
+)
+from app.docking.tasks import (
+    create_docking_job,
+    run_docking_job,
+    get_job,
+    cancel_docking_job,
+    get_queue_position
+)
+from app.docking.router import router as docking_router
 
 
 # Configure logging
@@ -184,6 +199,9 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 # Add rate limiting middleware
 rate_limiter = RateLimiter(requests_per_minute=settings.rate_limit_per_minute)
 app.add_middleware(RateLimitMiddleware, rate_limiter=rate_limiter)
+
+# Include the docking router for job history and other endpoints
+app.include_router(docking_router)
 
 # Initialize pipeline (will be created per request for now)
 # In production, consider using dependency injection
@@ -452,6 +470,281 @@ async def analyze_candidate(request: AnalyzeCandidateRequest) -> AnalyzeCandidat
             ai_analysis=None,
             success=False,
             message=f"AI analysis failed: {str(e)}"
+        )
+
+
+# ============================================================================
+# MOLECULAR DOCKING ENDPOINTS
+# ============================================================================
+
+@app.post(
+    "/api/docking/submit",
+    response_model=DockingJobResponse,
+    responses={
+        200: {
+            "description": "Docking job submitted successfully",
+            "model": DockingJobResponse
+        },
+        400: {
+            "description": "Invalid input",
+            "model": ErrorResponse
+        },
+        500: {
+            "description": "Internal server error",
+            "model": ErrorResponse
+        }
+    },
+    summary="Submit a molecular docking job",
+    description="""
+    Submit a new molecular docking job to validate protein-ligand binding.
+    
+    The job will be queued and processed asynchronously. Use the returned
+    job_id to check status and retrieve results.
+    
+    Required data:
+    - candidate_id: ChEMBL ID of the drug candidate
+    - target_uniprot_id: UniProt ID of the target protein  
+    - disease_name: Disease being treated
+    - smiles: SMILES string of the ligand molecule
+    
+    Optional parameters:
+    - grid_params: Custom grid box parameters (auto-calculated if not provided)
+    - docking_params: Custom docking parameters (uses defaults if not provided)
+    """
+)
+async def submit_docking_job(request: DockingJobRequest) -> DockingJobResponse:
+    """Submit a new molecular docking job.
+    
+    Args:
+        request: DockingJobRequest with candidate and docking parameters
+    
+    Returns:
+        DockingJobResponse with job_id for tracking
+    """
+    try:
+        # Fetch protein structure from AlphaFold
+        from app.alphafold_client import AlphaFoldClient
+        
+        alphafold = AlphaFoldClient()
+        structure = await alphafold.get_protein_structure(request.target_uniprot_id)
+        
+        if not structure:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error_code": "STRUCTURE_NOT_FOUND",
+                    "message": f"No protein structure found for {request.target_uniprot_id}",
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            )
+        
+        # Create docking job
+        job = create_docking_job(
+            candidate_id=request.candidate_id,
+            target_uniprot_id=request.target_uniprot_id,
+            disease_name=request.disease_name,
+            smiles=request.smiles,
+            pdb_data=structure.pdb_data,
+            grid_params=request.grid_params,
+            docking_params=request.docking_params
+        )
+        
+        # Run docking synchronously for now (in production, use Celery)
+        # For async execution, uncomment: celery_app.send_task('run_docking', args=[job.id])
+        import threading
+        thread = threading.Thread(target=run_docking_job, args=(job.id,))
+        thread.start()
+        
+        return DockingJobResponse(
+            job_id=job.id,
+            status=job.status,
+            message="Docking job submitted successfully",
+            estimated_time_seconds=300  # ~5 minutes typical
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Docking submission error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error_code": "DOCKING_SUBMISSION_ERROR",
+                "message": f"Failed to submit docking job: {str(e)}",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+
+
+@app.get(
+    "/api/docking/status/{job_id}",
+    response_model=DockingStatusResponse,
+    responses={
+        200: {
+            "description": "Docking job status",
+            "model": DockingStatusResponse
+        },
+        404: {
+            "description": "Job not found",
+            "model": ErrorResponse
+        }
+    },
+    summary="Get docking job status",
+    description="Get the current status and results of a docking job."
+)
+async def get_docking_status(job_id: str) -> DockingStatusResponse:
+    """Get status and results of a docking job.
+    
+    Args:
+        job_id: The job identifier returned from submit
+    
+    Returns:
+        DockingStatusResponse with job details and results
+    """
+    job = get_job(job_id)
+    
+    if not job:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": "JOB_NOT_FOUND",
+                "message": f"Docking job not found: {job_id}",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+    
+    queue_pos = get_queue_position(job_id) if job.status == DockingJobStatus.QUEUED else None
+    
+    return DockingStatusResponse(
+        job=job,
+        queue_position=queue_pos
+    )
+
+
+@app.get(
+    "/api/docking/jobs/{job_id}/results",
+    responses={
+        200: {
+            "description": "Docking results retrieved"
+        },
+        400: {
+            "description": "Job not completed",
+            "model": ErrorResponse
+        },
+        404: {
+            "description": "Job not found",
+            "model": ErrorResponse
+        }
+    },
+    summary="Get docking job results",
+    description="Get the results of a completed docking job including all poses and binding affinities."
+)
+async def get_docking_results(job_id: str):
+    """Get docking results for a completed job.
+    
+    Args:
+        job_id: The job identifier
+    
+    Returns:
+        Docking results with poses and binding affinities
+    """
+    job = get_job(job_id)
+    
+    if not job:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": "JOB_NOT_FOUND",
+                "message": f"Docking job not found: {job_id}",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+    
+    if job.status not in [DockingJobStatus.COMPLETED, DockingJobStatus.FAILED]:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "JOB_NOT_COMPLETE",
+                "message": f"Job {job_id} is not complete (status: {job.status})",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+    
+    # Build results response
+    poses = []
+    if job.results:
+        for i, result in enumerate(job.results):
+            poses.append({
+                "pose_number": i + 1,
+                "binding_affinity": result.binding_affinity,
+                "rmsd_lb": result.rmsd_lb,
+                "rmsd_ub": result.rmsd_ub,
+                "pdbqt_data": result.pdbqt_data
+            })
+    
+    return {
+        "job_id": job.id,
+        "candidate_id": job.candidate_id,
+        "target_uniprot_id": job.target_uniprot_id,
+        "status": job.status.value,
+        "best_affinity": job.best_affinity,
+        "num_poses": len(poses),
+        "poses": poses,
+        "error_message": job.error_message,
+        "created_at": job.created_at.isoformat() if job.created_at else None,
+        "completed_at": job.completed_at.isoformat() if job.completed_at else None
+    }
+
+
+@app.delete(
+    "/api/docking/cancel/{job_id}",
+    responses={
+        200: {
+            "description": "Job cancelled successfully"
+        },
+        400: {
+            "description": "Job cannot be cancelled",
+            "model": ErrorResponse
+        },
+        404: {
+            "description": "Job not found",
+            "model": ErrorResponse
+        }
+    },
+    summary="Cancel a docking job",
+    description="Cancel a queued docking job. Running jobs cannot be cancelled."
+)
+async def cancel_docking(job_id: str):
+    """Cancel a queued docking job.
+    
+    Args:
+        job_id: The job identifier to cancel
+    
+    Returns:
+        Success message or error
+    """
+    job = get_job(job_id)
+    
+    if not job:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": "JOB_NOT_FOUND",
+                "message": f"Docking job not found: {job_id}",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+    
+    if cancel_docking_job(job_id):
+        return {"message": "Docking job cancelled successfully", "job_id": job_id}
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "CANNOT_CANCEL",
+                "message": f"Job {job_id} cannot be cancelled (status: {job.status})",
+                "timestamp": datetime.utcnow().isoformat()
+            }
         )
 
 

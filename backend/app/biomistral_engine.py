@@ -78,7 +78,7 @@ class BioMistralEngine:
             )
             
             # Validate the response is a proper analysis
-            if not self._is_valid_analysis(response, molecule.name):
+            if not self._is_valid_analysis(response, molecule.name, target.disease_association):
                 return None
             
             return response
@@ -90,14 +90,16 @@ class BioMistralEngine:
             # Graceful degradation on any error
             return None
     
-    def _is_valid_analysis(self, response: str, molecule_name: str) -> bool:
+    def _is_valid_analysis(self, response: str, molecule_name: str, disease: str) -> bool:
         """Validate that the AI response is a proper drug candidate analysis.
         
         Detects generic/unhelpful responses like greetings or irrelevant text.
+        Also checks that the response mentions the correct disease.
         
         Args:
             response: The AI-generated response text
             molecule_name: Name of the molecule being analyzed
+            disease: The disease being treated (must be mentioned in response)
         
         Returns:
             True if response appears to be a valid analysis, False otherwise
@@ -134,18 +136,38 @@ class BioMistralEngine:
             if phrase in response_lower:
                 return False
         
+        # Check that the response mentions the correct disease
+        # Extract key words from disease name for flexible matching
+        disease_lower = disease.lower()
+        disease_words = [word for word in disease_lower.split() if len(word) > 3]
+        
+        # Check if any significant word from the disease is mentioned
+        disease_mentioned = any(word in response_lower for word in disease_words) or disease_lower in response_lower
+        
+        # List of common wrong diseases that might be hallucinated
+        wrong_diseases = [
+            "hypertension", "diabetes", "cancer", "alzheimer", "parkinson",
+            "arthritis", "asthma", "obesity", "depression", "anxiety",
+            "schizophrenia", "epilepsy", "migraine", "influenza", "covid"
+        ]
+        
+        # Check if a wrong disease is mentioned (and it's not part of the actual disease name)
+        for wrong_disease in wrong_diseases:
+            if wrong_disease in response_lower and wrong_disease not in disease_lower:
+                return False
+        
         # Check that the response contains some relevant content
-        # It should mention at least one of these drug-related terms
         relevant_terms = [
             "binding", "affinity", "molecule", "drug", "target", "protein",
             "lipinski", "toxicity", "risk", "molecular", "weight", "logp",
             "therapeutic", "treatment", "efficacy", "safety", "pharmacokinetic",
-            "bioavailability", "solubility", "metabolism", molecule_name.lower()
+            "bioavailability", "solubility", "metabolism", molecule_name.lower(),
+            "pchembl", "qed", "drug-likeness"
         ]
         
         has_relevant_content = any(term in response_lower for term in relevant_terms)
         
-        return has_relevant_content
+        return has_relevant_content and disease_mentioned
     
     def _generate_prompt(
         self,
@@ -168,22 +190,43 @@ class BioMistralEngine:
         Returns:
             Formatted prompt string
         """
-        prompt = f"""Analyze the following drug candidate:
+        # Determine binding affinity description
+        if molecule.pchembl_value >= 8:
+            affinity_desc = "excellent"
+        elif molecule.pchembl_value >= 7:
+            affinity_desc = "strong"
+        elif molecule.pchembl_value >= 6:
+            affinity_desc = "moderate"
+        else:
+            affinity_desc = "weak"
+        
+        # Determine drug-likeness description
+        if properties.drug_likeness_score >= 0.7:
+            qed_desc = "excellent"
+        elif properties.drug_likeness_score >= 0.5:
+            qed_desc = "good"
+        else:
+            qed_desc = "poor"
+        
+        prompt = f"""You are analyzing a drug candidate for {target.disease_association}. 
+IMPORTANT: This analysis is specifically for treating {target.disease_association}. Do NOT mention any other disease.
 
-Molecule: {molecule.name} ({molecule.chembl_id})
-Target: {target.protein_name} ({target.gene_symbol})
-Disease: {target.disease_association}
+Drug Candidate: {molecule.name} ({molecule.chembl_id})
+Target Protein: {target.protein_name} ({target.gene_symbol})
+Disease Being Treated: {target.disease_association}
 
-Key Data:
-- Binding Affinity (pChEMBL): {molecule.pchembl_value:.2f}
+Measured Data:
+- Binding Affinity (pChEMBL): {molecule.pchembl_value:.2f} ({affinity_desc} binding)
 - Molecular Weight: {properties.molecular_weight:.2f} Da
-- LogP: {properties.logp:.2f}
-- Drug-Likeness (QED): {properties.drug_likeness_score:.2f}
-- Lipinski Violations: {properties.lipinski_violations}
-- Toxicity Risk: {toxicity.risk_level}
+- LogP (lipophilicity): {properties.logp:.2f}
+- Drug-Likeness Score (QED): {properties.drug_likeness_score:.2f} ({qed_desc})
+- Lipinski Rule Violations: {properties.lipinski_violations}
+- Toxicity Risk Level: {toxicity.risk_level}
 - Toxicity Score: {toxicity.toxicity_score:.2f}
 
-Analysis:"""
+Based on the above data, provide a concise scientific analysis (3-4 sentences) of this drug candidate for treating {target.disease_association}. 
+Focus on: binding affinity interpretation, drug-likeness assessment, safety profile, and overall potential.
+Remember: This is for {target.disease_association} treatment only."""
         
         return prompt
     

@@ -3,12 +3,17 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import useDiscovery from '@/hooks/useDiscovery';
-import { DrugCandidate } from '@/types';
+import { DrugCandidate, DockingJobResult } from '@/types';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import ErrorMessage from '@/components/ErrorMessage';
 import ProteinViewer3D from '@/components/ProteinViewer3D';
 import MoleculeViewer3D from '@/components/MoleculeViewer3D';
+import DockingSubmissionModal from '@/components/DockingSubmissionModal';
+import DockingJobTracker from '@/components/DockingJobTracker';
+import DockingResultsViewer from '@/components/DockingResultsViewer';
+import DockingResultsAnalysis from '@/components/DockingResultsAnalysis';
 import DiscoveryAPI from '@/lib/discovery-api';
+import { dockingApi, DockingApiError } from '@/lib/docking-api';
 import {
     ArrowLeft,
     Dna,
@@ -16,7 +21,11 @@ import {
     AlertTriangle,
     Brain,
     CheckCircle,
-    Loader2
+    Loader2,
+    Atom,
+    Play,
+    History,
+    BarChart3,
 } from 'lucide-react';
 
 function CandidateDetailsContent() {
@@ -33,6 +42,14 @@ function CandidateDetailsContent() {
     const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
     const [isLoadingAiAnalysis, setIsLoadingAiAnalysis] = useState(false);
     const [aiAnalysisError, setAiAnalysisError] = useState<string | null>(null);
+    
+    // Docking state
+    const [showDockingModal, setShowDockingModal] = useState(false);
+    const [activeJobIds, setActiveJobIds] = useState<string[]>([]);
+    const [dockingResults, setDockingResults] = useState<DockingJobResult[]>([]);
+    const [isLoadingDockingResults, setIsLoadingDockingResults] = useState(false);
+    const [dockingError, setDockingError] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'overview' | 'docking'>('overview');
 
     useEffect(() => {
         if (data?.candidates) {
@@ -63,7 +80,7 @@ function CandidateDetailsContent() {
                     } else {
                         setAiAnalysisError(response.message || 'AI analysis unavailable');
                     }
-                } catch (err) {
+                } catch {
                     setAiAnalysisError('Failed to generate AI analysis');
                 } finally {
                     setIsLoadingAiAnalysis(false);
@@ -73,6 +90,71 @@ function CandidateDetailsContent() {
 
         fetchAiAnalysis();
     }, [candidate, aiAnalysis, isLoadingAiAnalysis]);
+
+    // Fetch docking results for this candidate
+    useEffect(() => {
+        const fetchDockingResults = async () => {
+            if (!candidate?.molecule.chembl_id) return;
+            
+            setIsLoadingDockingResults(true);
+            setDockingError(null);
+            
+            try {
+                const historyResponse = await dockingApi.getJobHistory({
+                    candidate_id: candidate.molecule.chembl_id,
+                    status: 'completed',
+                    page_size: 10,
+                });
+                
+                // Fetch full results for completed jobs
+                const results: DockingJobResult[] = [];
+                for (const job of historyResponse.jobs) {
+                    try {
+                        const jobResult = await dockingApi.getJobResults(job.job_id);
+                        results.push(jobResult);
+                    } catch {
+                        // Skip jobs with no results
+                    }
+                }
+                setDockingResults(results);
+            } catch (err) {
+                if (err instanceof DockingApiError) {
+                    setDockingError(err.message);
+                }
+            } finally {
+                setIsLoadingDockingResults(false);
+            }
+        };
+        
+        if (activeTab === 'docking') {
+            fetchDockingResults();
+        }
+    }, [candidate?.molecule.chembl_id, activeTab]);
+
+    // Handle docking submission success
+    const handleDockingSubmitted = (jobIds: string[]) => {
+        setActiveJobIds(prev => [...prev, ...jobIds]);
+        setShowDockingModal(false);
+        setActiveTab('docking');
+    };
+
+    // Handle job completion - fetch the result when tracker reports completion
+    const handleJobComplete = async (jobId: string) => {
+        try {
+            const result = await dockingApi.getJobResults(jobId);
+            if (result && result.job_id) {
+                setDockingResults(prev => [...prev, result]);
+            }
+        } catch (err) {
+            console.error('Failed to fetch docking results for job:', jobId, err);
+        }
+        setActiveJobIds(prev => prev.filter(id => id !== jobId));
+    };
+
+    // Handle job cancellation/failure
+    const handleJobCancelled = (jobId: string) => {
+        setActiveJobIds(prev => prev.filter(id => id !== jobId));
+    };
 
     const handleBack = () => {
         if (disease) {
@@ -188,9 +270,142 @@ function CandidateDetailsContent() {
                         </div>
                     </div>
                 </div>
+
+                {/* Tab Navigation */}
+                <div className="flex items-center gap-2 mb-6 mt-6">
+                    <button
+                        onClick={() => setActiveTab('overview')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                            activeTab === 'overview'
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                        }`}
+                    >
+                        <FlaskConical className="w-4 h-4" />
+                        Overview
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('docking')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                            activeTab === 'docking'
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                        }`}
+                    >
+                        <Atom className="w-4 h-4" />
+                        Docking
+                        {(activeJobIds.length > 0 || dockingResults.length > 0) && (
+                            <span className={`px-1.5 py-0.5 text-xs rounded-full ${
+                                activeTab === 'docking' ? 'bg-white/20' : 'bg-blue-100 text-blue-700'
+                            }`}>
+                                {activeJobIds.length > 0 ? activeJobIds.length : dockingResults.length}
+                            </span>
+                        )}
+                    </button>
+                </div>
             </div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                {activeTab === 'docking' ? (
+                    /* Docking Tab Content */
+                    <div className="space-y-6">
+                        {/* Docking Actions Header */}
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full"></div>
+                                Molecular Docking
+                            </h2>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => router.push('/docking/history')}
+                                    className="flex items-center gap-2 px-3 py-2 text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                                >
+                                    <History className="w-4 h-4" />
+                                    Job History
+                                </button>
+                                <button
+                                    onClick={() => setShowDockingModal(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/30 font-medium"
+                                >
+                                    <Play className="w-4 h-4" />
+                                    Run Docking
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Active Jobs */}
+                        {activeJobIds.length > 0 && (
+                            <div className="space-y-4">
+                                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                                    <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                                    Active Jobs ({activeJobIds.length})
+                                </h3>
+                                {activeJobIds.map(jobId => (
+                                    <DockingJobTracker
+                                        key={jobId}
+                                        jobId={jobId}
+                                        onComplete={handleJobComplete}
+                                        onCancel={handleJobCancelled}
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Docking Results */}
+                        {isLoadingDockingResults ? (
+                            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 flex flex-col items-center justify-center">
+                                <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-4" />
+                                <p className="text-gray-600">Loading docking results...</p>
+                            </div>
+                        ) : dockingError ? (
+                            <div className="bg-white rounded-2xl border border-red-200 shadow-sm p-8">
+                                <p className="text-red-600 font-medium">{dockingError}</p>
+                            </div>
+                        ) : dockingResults.length > 0 ? (
+                            <div className="space-y-6">
+                                {/* Analysis Summary */}
+                                {dockingResults.length > 0 && candidate && (
+                                    <DockingResultsAnalysis
+                                        results={dockingResults[0]}
+                                        candidate={candidate}
+                                    />
+                                )}
+                                
+                                {/* Detailed Results */}
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                                        <BarChart3 className="w-4 h-4 text-blue-600" />
+                                        Completed Docking Jobs ({dockingResults.length})
+                                    </h3>
+                                    {dockingResults.filter(r => r && r.job_id).map(result => (
+                                        <DockingResultsViewer
+                                            key={result.job_id}
+                                            result={result}
+                                            showVisualization={true}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        ) : activeJobIds.length === 0 ? (
+                            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 text-center">
+                                <Atom className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Docking Results Yet</h3>
+                                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                                    Run a molecular docking simulation to predict how this compound binds to the target protein.
+                                </p>
+                                <button
+                                    onClick={() => setShowDockingModal(true)}
+                                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/30 font-medium"
+                                >
+                                    <Play className="w-5 h-5" />
+                                    Run Docking Simulation
+                                </button>
+                            </div>
+                        ) : null}
+                    </div>
+                ) : (
+                /* Overview Tab Content */
+                <>
                 {/* Properties Grid - Top Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     
@@ -413,6 +628,17 @@ function CandidateDetailsContent() {
                         </div>
                     </div>
                 </div>
+                </>
+                )}
+
+                {/* Docking Submission Modal */}
+                {showDockingModal && candidate && (
+                    <DockingSubmissionModal
+                        candidate={candidate}
+                        onClose={() => setShowDockingModal(false)}
+                        onSubmitSuccess={handleDockingSubmitted}
+                    />
+                )}
             </div>
         </div>
     );
