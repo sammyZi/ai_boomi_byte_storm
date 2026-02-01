@@ -4,9 +4,9 @@
 
 ## 1. Problem Statement
 
-Researchers exploring drug candidates for a disease must manually query multiple databases (Open Targets, ChEMBL, AlphaFold), cross-reference results, and analyze molecular properties one by one. This repetitive process takes hours to days for each disease query.
+Researchers exploring drug candidates for a disease must manually query multiple databases (Open Targets, ChEMBL, AlphaFold), cross-reference results, analyze molecular properties, and run docking simulations one by one. This repetitive process takes hours to days for each disease query.
 
-**This tool automates the lookup and analysis, returning ranked candidates in seconds instead of hours.**
+**This tool automates the lookup, analysis, and molecular docking—returning ranked candidates in seconds and docking results in minutes instead of hours.**
 
 ---
 
@@ -25,6 +25,7 @@ Researchers exploring drug candidates for a disease must manually query multiple
 
 - **Early-stage screening**: Quickly identify promising drug candidates for a disease
 - **Target validation**: Verify protein targets with AlphaFold structures
+- **Molecular docking**: Simulate drug-protein binding and predict binding affinity
 - **Literature review acceleration**: AI-generated summaries of candidate potential
 - **Educational demonstrations**: Teach drug discovery pipeline concepts
 
@@ -33,7 +34,7 @@ Researchers exploring drug candidates for a disease must manually query multiple
 ## 3. Solution Overview
 
 **Input**: Disease name (e.g., "Alzheimer's disease")  
-**Output**: Ranked list of drug candidates with scores, properties, and AI analysis
+**Output**: Ranked list of drug candidates with scores, properties, AI analysis, and optional molecular docking results
 
 ### Pipeline Flow
 
@@ -47,6 +48,29 @@ Researchers exploring drug candidates for a disease must manually query multiple
               Open Targets       ChEMBL          BioMistral
               + AlphaFold                        AI Analysis
 ```
+
+### Molecular Docking
+
+After discovering candidates, users can submit them for molecular docking simulation.
+
+**What it does**: Simulates how a drug molecule fits into a protein's binding site.
+
+**How it works**:
+1. Protein structure fetched from AlphaFold (PDB format)
+2. Molecule converted to 3D structure (PDBQT format via OpenBabel)
+3. AutoDock Vina calculates optimal binding poses
+4. Results returned with binding affinity scores
+
+**Docking Results Include**:
+
+| Output | Description |
+|--------|-------------|
+| **Binding Affinity** | Energy score in kcal/mol (more negative = stronger binding, typically -6 to -12) |
+| **Best Pose** | 3D coordinates of the drug molecule docked into the protein |
+| **RMSD** | Root-mean-square deviation between poses (indicates pose consistency) |
+| **Pose Count** | Multiple binding poses ranked by affinity |
+
+**Timeline**: 5-30 minutes per job (runs in background via Celery queue)
 
 ### Architecture
 
@@ -219,9 +243,9 @@ Where:
 
 | Name | Role | Contact |
 |------|------|---------|
-| **[Your Name]** | Project Lead / Full-Stack Developer | your.email@example.com |
-| **[Team Member]** | Backend Developer | email@example.com |
-| **[Team Member]** | ML Engineer | email@example.com |
+| **[Samarth Bhinge]** | Project Lead / Full-Stack Developer | bhingesamarth@gmail.com |
+| **[Vedant Hande]** | Backend Developer | vedanthande2244@gmail.com |
+
 
 ### Contributing
 
