@@ -21,7 +21,10 @@ import { DockingJobResult, DockingPose } from '@/types';
 import { dockingApi, DockingApiError } from '@/lib/docking-api';
 
 interface DockingResultsViewerProps {
-  jobId: string;
+  // Either provide a jobId to fetch, or a result object directly
+  jobId?: string;
+  result?: DockingJobResult;
+  showVisualization?: boolean;
   onError?: (error: string) => void;
 }
 
@@ -47,11 +50,11 @@ const getAffinityBgColor = (affinity: number): string => {
   return 'bg-orange-100 border-orange-300';
 };
 
-export default function DockingResultsViewer({ jobId, onError }: DockingResultsViewerProps) {
-  const [results, setResults] = useState<DockingJobResult | null>(null);
+export default function DockingResultsViewer({ jobId, result: initialResult, showVisualization = true, onError }: DockingResultsViewerProps) {
+  const [results, setResults] = useState<DockingJobResult | null>(initialResult || null);
   const [selectedPose, setSelectedPose] = useState<number>(1);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!initialResult && !!jobId);
   const [error, setError] = useState<string | null>(null);
   const [showInteractions, setShowInteractions] = useState(true);
   const [showHBonds, setShowHBonds] = useState(true);
@@ -59,13 +62,22 @@ export default function DockingResultsViewer({ jobId, onError }: DockingResultsV
   const [isPoseDropdownOpen, setIsPoseDropdownOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // Fetch results
+  // Derive the effective job ID
+  const effectiveJobId = jobId || initialResult?.job_id || '';
+
+  // Fetch results (only if not provided directly)
   const fetchResults = useCallback(async () => {
+    // Skip fetching if we have initial results or no job ID
+    if (initialResult || !effectiveJobId) {
+      setIsLoading(false);
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
 
     try {
-      const data = await dockingApi.getJobResults(jobId);
+      const data = await dockingApi.getJobResults(effectiveJobId);
       setResults(data);
       
       if (data.poses.length > 0) {
@@ -80,11 +92,20 @@ export default function DockingResultsViewer({ jobId, onError }: DockingResultsV
     } finally {
       setIsLoading(false);
     }
-  }, [jobId, onError]);
+  }, [effectiveJobId, initialResult, onError]);
 
   useEffect(() => {
-    fetchResults();
-  }, [fetchResults]);
+    // If initial result provided, use it directly
+    if (initialResult) {
+      setResults(initialResult);
+      if (initialResult.poses?.length > 0) {
+        setSelectedPose(1);
+      }
+      setIsLoading(false);
+    } else if (effectiveJobId) {
+      fetchResults();
+    }
+  }, [initialResult, effectiveJobId, fetchResults]);
 
   // Get selected pose data
   const currentPose = useMemo(() => {
@@ -100,44 +121,22 @@ export default function DockingResultsViewer({ jobId, onError }: DockingResultsV
     );
   }, [results]);
 
-  // Generate 3Dmol viewer URL with protein and ligand
-  const viewerUrl = useMemo(() => {
-    if (!results?.pdbqt_url) return null;
-    
-    // Build 3Dmol.js viewer URL with protein and ligand styling
-    const proteinStyle = JSON.stringify({
-      cartoon: { color: 'spectrum', opacity: 0.85 }
-    });
-    
-    const ligandStyle = JSON.stringify({
-      stick: { radius: 0.2 },
-      sphere: { radius: 0.4, colorscheme: 'Jmol' }
-    });
-    
-    // For the viewer, we'll use an inline HTML approach with 3Dmol.js
-    // The pdbqt_url should contain the docking result with protein + ligand
-    const baseUrl = `https://3dmol.org/viewer.html`;
-    const params = new URLSearchParams({
-      url: results.pdbqt_url,
-      select: 'all',
-      style: proteinStyle,
-    });
-    
-    return `${baseUrl}?${params.toString()}`;
-  }, [results]);
+  // Check if we have PDBQT structure data available
+  const hasPdbqtData = useMemo(() => {
+    return currentPose?.pdbqt_data && currentPose.pdbqt_data.length > 0;
+  }, [currentPose]);
 
-  // Handle PDBQT download
-  const handleDownloadPDBQT = useCallback(async () => {
-    if (!results?.pdbqt_url) return;
+  // Handle PDBQT download - download the actual PDBQT data
+  const handleDownloadPDBQT = useCallback(() => {
+    if (!currentPose?.pdbqt_data) return;
     
     setIsDownloading(true);
     try {
-      const response = await fetch(results.pdbqt_url);
-      const blob = await response.blob();
+      const blob = new Blob([currentPose.pdbqt_data], { type: 'chemical/x-pdbqt' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `docking_${jobId}_pose${selectedPose}.pdbqt`;
+      a.download = `docking_${effectiveJobId}_pose${selectedPose}.pdbqt`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -147,7 +146,7 @@ export default function DockingResultsViewer({ jobId, onError }: DockingResultsV
     } finally {
       setIsDownloading(false);
     }
-  }, [results, jobId, selectedPose]);
+  }, [currentPose, effectiveJobId, selectedPose]);
 
   // Handle CSV download
   const handleDownloadCSV = useCallback(() => {
@@ -163,7 +162,7 @@ export default function DockingResultsViewer({ jobId, onError }: DockingResultsV
     ]);
     
     const csvContent = [
-      `# Docking Results for Job ${jobId}`,
+      `# Docking Results for Job ${effectiveJobId}`,
       `# Candidate: ${results.candidate_id}`,
       `# Target: ${results.target_uniprot_id}`,
       `# Best Affinity: ${results.best_affinity?.toFixed(2)} kcal/mol`,
@@ -176,12 +175,12 @@ export default function DockingResultsViewer({ jobId, onError }: DockingResultsV
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `docking_${jobId}_results.csv`;
+    a.download = `docking_${effectiveJobId}_results.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-  }, [results, jobId]);
+  }, [results, effectiveJobId]);
 
   // Loading state
   if (isLoading) {
@@ -239,7 +238,7 @@ export default function DockingResultsViewer({ jobId, onError }: DockingResultsV
             </div>
             <div>
               <h3 className="text-lg font-bold text-gray-900">Docking Results</h3>
-              <p className="text-sm text-gray-600 font-mono">Job: {jobId.slice(0, 8)}...</p>
+              <p className="text-sm text-gray-600 font-mono">Job: {effectiveJobId.slice(0, 8)}...</p>
             </div>
           </div>
           
@@ -357,55 +356,50 @@ export default function DockingResultsViewer({ jobId, onError }: DockingResultsV
           </button>
         </div>
 
-        {/* 3D Viewer */}
-        <div
-          className={`relative bg-gray-900 rounded-xl overflow-hidden border border-gray-300 transition-all duration-300 ${
-            isExpanded ? 'h-[700px]' : 'h-[500px]'
-          }`}
-        >
-          {viewerUrl ? (
-            <iframe
-              src={viewerUrl}
-              className="w-full h-full border-0"
-              title="Docking Results 3D Viewer"
-              allow="fullscreen; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-            />
-          ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-              <Atom className="w-16 h-16 mb-4 opacity-50" />
-              <p className="text-lg font-medium">3D Structure Preview</p>
-              <p className="text-sm mt-1">Structure file not available</p>
-            </div>
-          )}
-          
-          {/* Viewer Legend */}
-          <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-sm rounded-lg px-4 py-3 text-white text-xs">
-            <p className="font-medium mb-2">Legend</p>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-2 bg-gradient-to-r from-blue-400 via-green-400 to-red-400 rounded" />
-                <span>Protein (N→C terminus)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-gray-300 rounded-full" />
-                <span>Ligand atoms</span>
-              </div>
-              {showInteractions && showHBonds && (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-0.5 bg-cyan-400 rounded" />
-                  <span>Hydrogen bonds</span>
-                </div>
-              )}
-              {showInteractions && showHydrophobic && (
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-amber-400 rounded-full opacity-60" />
-                  <span>Hydrophobic contacts</span>
-                </div>
+        {/* 3D Structure Info Panel */}
+        {showVisualization && (
+          <div
+            className={`relative bg-gradient-to-br from-gray-900 to-indigo-900 rounded-xl overflow-hidden border border-gray-300 transition-all duration-300 ${
+              isExpanded ? 'h-[400px]' : 'h-[250px]'
+            }`}
+          >
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300">
+              <Atom className="w-16 h-16 mb-4 opacity-70 text-indigo-400" />
+              <p className="text-lg font-medium text-white">Ligand Pose #{selectedPose}</p>
+              {hasPdbqtData ? (
+                <>
+                  <p className="text-sm mt-2 text-indigo-300">
+                    PDBQT structure data available ({Math.round((currentPose?.pdbqt_data?.length || 0) / 1024)} KB)
+                  </p>
+                  <p className="text-xs mt-1 text-gray-400">
+                    Download the PDBQT file to view in molecular visualization software
+                  </p>
+                  <button
+                    onClick={handleDownloadPDBQT}
+                    className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    Download Pose #{selectedPose} PDBQT
+                  </button>
+                </>
+              ) : (
+                <p className="text-sm mt-2 text-gray-400">
+                  Structure coordinates not available for this pose
+                </p>
               )}
             </div>
+            
+            {/* Structure Info Badge */}
+            {hasPdbqtData && (
+              <div className="absolute top-4 right-4 bg-emerald-500/20 backdrop-blur-sm rounded-lg px-3 py-2 text-emerald-300 text-xs border border-emerald-500/30">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                  <span>Structure Available</span>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* Selected Pose Info */}
         {currentPose && (
@@ -533,7 +527,7 @@ export default function DockingResultsViewer({ jobId, onError }: DockingResultsV
             
             <button
               onClick={handleDownloadPDBQT}
-              disabled={!results.pdbqt_url || isDownloading}
+              disabled={!hasPdbqtData || isDownloading}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isDownloading ? (

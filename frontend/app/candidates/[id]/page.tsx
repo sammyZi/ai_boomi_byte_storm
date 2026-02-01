@@ -138,9 +138,16 @@ function CandidateDetailsContent() {
         setActiveTab('docking');
     };
 
-    // Handle job completion
-    const handleJobComplete = async (jobId: string, result: DockingJobResult) => {
-        setDockingResults(prev => [...prev, result]);
+    // Handle job completion - fetch the result when tracker reports completion
+    const handleJobComplete = async (jobId: string) => {
+        try {
+            const result = await dockingApi.getJobResults(jobId);
+            if (result && result.job_id) {
+                setDockingResults(prev => [...prev, result]);
+            }
+        } catch (err) {
+            console.error('Failed to fetch docking results for job:', jobId, err);
+        }
         setActiveJobIds(prev => prev.filter(id => id !== jobId));
     };
 
@@ -370,7 +377,7 @@ function CandidateDetailsContent() {
                                         <BarChart3 className="w-4 h-4 text-blue-600" />
                                         Completed Docking Jobs ({dockingResults.length})
                                     </h3>
-                                    {dockingResults.map(result => (
+                                    {dockingResults.filter(r => r && r.job_id).map(result => (
                                         <DockingResultsViewer
                                             key={result.job_id}
                                             result={result}

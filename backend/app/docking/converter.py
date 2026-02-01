@@ -17,31 +17,10 @@ import logging
 import tempfile
 import os
 import re
-import sys
-import warnings
 from typing import Optional, Tuple, List, Set
 from pathlib import Path
-from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
-
-
-@contextmanager
-def suppress_openbabel_warnings():
-    """Suppress non-critical Open Babel warnings during conversion.
-    
-    Open Babel emits warnings about missing optional data files (like space-groups.txt)
-    that don't affect PDBQT conversion. This context manager suppresses stderr
-    temporarily to keep logs clean.
-    """
-    # Open Babel writes warnings to stderr
-    old_stderr = sys.stderr
-    try:
-        sys.stderr = open(os.devnull, 'w')
-        yield
-    finally:
-        sys.stderr.close()
-        sys.stderr = old_stderr
 
 # Common metal ions found in protein structures
 METAL_IONS: Set[str] = {
@@ -158,59 +137,122 @@ class PDBQTConverter:
             self._detect_metals_and_cofactors(pdb_data)
         
         try:
-            # Import Open Babel (suppress non-critical data file warnings)
+            # Import Open Babel
             try:
-                with suppress_openbabel_warnings():
-                    from openbabel import openbabel as ob
+                from openbabel import openbabel as ob
             except ImportError:
                 logger.warning("Open Babel not installed, using fallback conversion")
                 return self._fallback_protein_conversion(pdb_data, uniprot_id)
             
-            # Suppress warnings during molecule operations
-            with suppress_openbabel_warnings():
-                # Create molecule from PDB (Req 2.1)
-                mol = ob.OBMol()
-                conv = ob.OBConversion()
-                conv.SetInFormat("pdb")
-                conv.SetOutFormat("pdbqt")
-                
-                if not conv.ReadString(mol, pdb_data):
-                    raise ValueError("Failed to parse PDB data - invalid format")
-                
-                if mol.NumAtoms() == 0:
-                    raise ValueError("No atoms found in PDB data")
-                
-                # Add hydrogens if requested (Req 2.2)
-                if add_hydrogens:
-                    mol.AddHydrogens()
-                    logger.debug(f"Added hydrogens to {uniprot_id}, total atoms: {mol.NumAtoms()}")
-                
-                # Merge non-polar hydrogens if requested (Req 2.4)
-                if merge_nonpolar_h:
-                    self._merge_nonpolar_hydrogens(mol)
-                
-                # Assign Gasteiger partial charges (Req 2.3)
-                charge_model = ob.OBChargeModel.FindType("gasteiger")
-                if charge_model:
-                    success = charge_model.ComputeCharges(mol)
-                    if success:
-                        logger.debug(f"Computed Gasteiger charges for {uniprot_id}")
-                    else:
-                        logger.warning(f"Failed to compute Gasteiger charges for {uniprot_id}")
+            # Create molecule from PDB (Req 2.1)
+            logger.info(f"[{uniprot_id}] Parsing PDB data...")
+            mol = ob.OBMol()
+            conv = ob.OBConversion()
+            conv.SetInFormat("pdb")
+            conv.SetOutFormat("pdbqt")
+            
+            if not conv.ReadString(mol, pdb_data):
+                raise ValueError("Failed to parse PDB data - invalid format")
+            
+            atom_count = mol.NumAtoms()
+            if atom_count == 0:
+                raise ValueError("No atoms found in PDB data")
+            
+            logger.info(f"[{uniprot_id}] Parsed {atom_count} atoms from PDB")
+            
+            # For very large proteins, use fast fallback conversion
+            # Vina works well with simplified receptor files
+            if atom_count > 15000:
+                logger.info(f"[{uniprot_id}] Very large protein ({atom_count} atoms) - using fast conversion...")
+                return self._fallback_protein_conversion(pdb_data, uniprot_id)
+            
+            # Add hydrogens if requested (Req 2.2)
+            # For large proteins, only add polar hydrogens (much faster)
+            if add_hydrogens:
+                if atom_count > 10000:
+                    logger.info(f"[{uniprot_id}] Large protein - adding only polar hydrogens for speed...")
+                    mol.AddPolarHydrogens()
                 else:
-                    logger.warning("Gasteiger charge model not available")
+                    logger.info(f"[{uniprot_id}] Adding hydrogens...")
+                    mol.AddHydrogens()
+                logger.info(f"[{uniprot_id}] Added hydrogens, total atoms: {mol.NumAtoms()}")
+            
+            # Merge non-polar hydrogens if requested (Req 2.4)
+            if merge_nonpolar_h:
+                self._merge_nonpolar_hydrogens(mol)
+            
+            # Assign Gasteiger partial charges (Req 2.3)
+            logger.info(f"[{uniprot_id}] Computing Gasteiger charges...")
+            charge_model = ob.OBChargeModel.FindType("gasteiger")
+            if charge_model:
+                success = charge_model.ComputeCharges(mol)
+                if success:
+                    logger.info(f"[{uniprot_id}] Computed Gasteiger charges successfully")
+                else:
+                    logger.warning(f"Failed to compute Gasteiger charges for {uniprot_id}")
+            else:
+                logger.warning("Gasteiger charge model not available")
+            
+            # Convert to PDBQT (Req 2.6)
+            # For large proteins, write directly to file instead of string (faster)
+            output_path = os.path.join(self.work_dir, f"{uniprot_id}_receptor.pdbqt")
+            
+            if mol.NumAtoms() > 10000:
+                # Large protein - try command-line obabel first (can be faster)
+                logger.info(f"[{uniprot_id}] Large protein detected, trying fast conversion...")
                 
-                # Convert to PDBQT (Req 2.6)
+                # First save as PDB with hydrogens added
+                temp_pdb_path = os.path.join(self.work_dir, f"{uniprot_id}_temp.pdb")
+                pdb_conv = ob.OBConversion()
+                pdb_conv.SetOutFormat("pdb")
+                pdb_conv.WriteFile(mol, temp_pdb_path)
+                
+                # Try using obabel command line (often faster for large files)
+                try:
+                    import subprocess
+                    result = subprocess.run(
+                        ['obabel', temp_pdb_path, '-O', output_path, '-xr', '-p', '7.4'],
+                        capture_output=True,
+                        text=True,
+                        timeout=300  # 5 minute timeout
+                    )
+                    if result.returncode == 0 and os.path.exists(output_path):
+                        with open(output_path, 'r') as f:
+                            pdbqt_data = f.read()
+                        logger.info(f"[{uniprot_id}] Fast obabel conversion complete, {len(pdbqt_data)} bytes")
+                        # Try to clean up temp file, but don't fail if we can't (Windows file locking)
+                        try:
+                            os.remove(temp_pdb_path)
+                        except (PermissionError, OSError) as del_err:
+                            logger.debug(f"[{uniprot_id}] Could not delete temp file (will be cleaned up later): {del_err}")
+                    else:
+                        raise Exception(f"obabel failed: {result.stderr}")
+                except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+                    logger.warning(f"[{uniprot_id}] obabel command failed ({e}), using Python API...")
+                    # Try to clean up temp file
+                    try:
+                        if os.path.exists(temp_pdb_path):
+                            os.remove(temp_pdb_path)
+                    except (PermissionError, OSError):
+                        pass
+                    conv.WriteFile(mol, output_path)
+                    with open(output_path, 'r') as f:
+                        pdbqt_data = f.read()
+                    logger.info(f"[{uniprot_id}] PDBQT write complete, {len(pdbqt_data)} bytes")
+            else:
+                logger.info(f"[{uniprot_id}] Writing PDBQT format...")
                 pdbqt_data = conv.WriteString(mol)
+                logger.info(f"[{uniprot_id}] PDBQT write complete, {len(pdbqt_data)} bytes")
             
             if not pdbqt_data or len(pdbqt_data.strip()) == 0:
                 raise ValueError("PDBQT conversion produced empty output")
             
             # Clean receptor PDBQT - remove ligand-specific tags
+            logger.info(f"[{uniprot_id}] Cleaning receptor PDBQT (removing ligand tags)...")
             pdbqt_data = self._clean_receptor_pdbqt(pdbqt_data)
             
-            # Write to file
-            output_path = os.path.join(self.work_dir, f"{uniprot_id}_receptor.pdbqt")
+            # Write cleaned data to file
+            logger.info(f"[{uniprot_id}] Writing cleaned PDBQT file to disk...")
             with open(output_path, 'w') as f:
                 f.write(pdbqt_data)
             
@@ -448,23 +490,22 @@ class PDBQTConverter:
             
             # Fallback to Open Babel
             try:
-                with suppress_openbabel_warnings():
-                    from openbabel import openbabel as ob
-                    
-                    obmol = ob.OBMol()
-                    conv = ob.OBConversion()
-                    conv.SetInFormat("pdb")
-                    conv.SetOutFormat("pdbqt")
-                    
-                    if not conv.ReadString(obmol, pdb_data):
-                        raise ValueError("Failed to convert PDB to PDBQT")
-                    
-                    # Add Gasteiger charges
-                    charge_model = ob.OBChargeModel.FindType("gasteiger")
-                    if charge_model:
-                        charge_model.ComputeCharges(obmol)
-                    
-                    pdbqt_data = conv.WriteString(obmol)
+                from openbabel import openbabel as ob
+                
+                obmol = ob.OBMol()
+                conv = ob.OBConversion()
+                conv.SetInFormat("pdb")
+                conv.SetOutFormat("pdbqt")
+                
+                if not conv.ReadString(obmol, pdb_data):
+                    raise ValueError("Failed to convert PDB to PDBQT")
+                
+                # Add Gasteiger charges
+                charge_model = ob.OBChargeModel.FindType("gasteiger")
+                if charge_model:
+                    charge_model.ComputeCharges(obmol)
+                
+                pdbqt_data = conv.WriteString(obmol)
                 
             except ImportError:
                 logger.warning("Open Babel not installed, using basic PDBQT conversion")
@@ -556,11 +597,15 @@ class PDBQTConverter:
         
         lines = pdb_data.strip().split('\n')
         pdbqt_lines = []
+        atom_count = 0
         
         for line in lines:
             if line.startswith(('ATOM', 'HETATM')):
-                # Extract atom information
+                # Skip hydrogen atoms for very large proteins to reduce size
                 atom_name = line[12:16].strip() if len(line) > 16 else 'C'
+                if atom_name.startswith('H') or atom_name.startswith('1H') or atom_name.startswith('2H') or atom_name.startswith('3H'):
+                    continue
+                
                 residue_name = line[17:20].strip() if len(line) > 20 else ''
                 
                 # Determine atom type for PDBQT
@@ -573,15 +618,17 @@ class PDBQTConverter:
                 if residue_name.upper() in METAL_IONS:
                     charge = self._get_metal_charge(residue_name.upper())
                 
-                # Format PDBQT line
-                # PDBQT format: columns 1-66 from PDB, then charge and atom type
-                padded_line = line.ljust(66)[:66]
-                pdbqt_line = f"{padded_line[:54]}{charge:8.3f} {atom_type:>2}"
+                # Format PDBQT line properly
+                # PDBQT receptor format: columns 1-54 from PDB, then partial charge (8 chars), atom type (2 chars)
+                base_line = line[:54].ljust(54)
+                pdbqt_line = f"{base_line}{charge:8.3f}    {atom_type:>2}"
                 pdbqt_lines.append(pdbqt_line)
+                atom_count += 1
                 
-            elif line.startswith(('TER', 'END')):
-                pdbqt_lines.append(line)
+            elif line.startswith('TER'):
+                pdbqt_lines.append('TER')
         
+        # Receptor files should NOT have ROOT/ENDROOT/BRANCH tags - those are for ligands only
         pdbqt_data = '\n'.join(pdbqt_lines)
         
         output_path = os.path.join(self.work_dir, f"{uniprot_id}_receptor.pdbqt")
@@ -590,6 +637,7 @@ class PDBQTConverter:
         
         logger.warning(f"Used fallback conversion for {uniprot_id} - results may be less accurate")
         logger.info(f"Preserved metals: {self._detected_metals}, cofactors: {self._detected_cofactors}")
+        logger.info(f"Fallback conversion: {atom_count} heavy atoms written")
         return pdbqt_data, output_path
     
     def _get_atom_type(self, atom_name: str, residue_name: str = '') -> str:

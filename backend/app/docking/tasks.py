@@ -9,8 +9,8 @@ import os
 import tempfile
 import shutil
 import uuid
-from datetime import datetime
-from typing import Optional, Dict, Any
+from datetime import datetime, timezone
+from typing import Optional, Dict, Any, List
 
 from app.docking.models import (
     DockingJob,
@@ -49,6 +49,15 @@ def save_job(job: DockingJob) -> None:
         job: DockingJob to save
     """
     _jobs_store[job.id] = job
+
+
+def get_all_jobs() -> List[DockingJob]:
+    """Get all docking jobs from in-memory store.
+    
+    Returns:
+        List of all DockingJob objects
+    """
+    return list(_jobs_store.values())
 
 
 def create_docking_job(
@@ -135,7 +144,7 @@ def run_docking_job(job_id: str) -> DockingJob:
     
     # Update status to running
     job.status = DockingJobStatus.RUNNING
-    job.started_at = datetime.utcnow()
+    job.started_at = datetime.now(timezone.utc)
     save_job(job)
     
     # Create working directory
@@ -190,8 +199,17 @@ def run_docking_job(job_id: str) -> DockingJob:
         
         if not success:
             job.status = DockingJobStatus.FAILED
-            job.error_message = error or "Vina execution failed"
-            job.completed_at = datetime.utcnow()
+            # Include log file contents for better debugging
+            error_details = error or "Vina execution failed"
+            if os.path.exists(log_path):
+                try:
+                    with open(log_path, 'r') as f:
+                        log_contents = f.read()
+                    logger.error(f"[{job_id}] Vina log contents:\n{log_contents}")
+                except Exception as e:
+                    logger.error(f"[{job_id}] Could not read log file: {e}")
+            job.error_message = error_details
+            job.completed_at = datetime.now(timezone.utc)
             save_job(job)
             return job
         
@@ -203,7 +221,7 @@ def run_docking_job(job_id: str) -> DockingJob:
         if not results:
             job.status = DockingJobStatus.FAILED
             job.error_message = "No docking poses found"
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(timezone.utc)
             save_job(job)
             return job
         
@@ -211,7 +229,7 @@ def run_docking_job(job_id: str) -> DockingJob:
         job.results = results
         job.best_affinity = min(r.binding_affinity for r in results)
         job.status = DockingJobStatus.COMPLETED
-        job.completed_at = datetime.utcnow()
+        job.completed_at = datetime.now(timezone.utc)
         save_job(job)
         
         logger.info(f"[{job_id}] Docking completed with {len(results)} poses, "
@@ -223,7 +241,7 @@ def run_docking_job(job_id: str) -> DockingJob:
         logger.error(f"[{job_id}] Docking failed: {str(e)}", exc_info=True)
         job.status = DockingJobStatus.FAILED
         job.error_message = str(e)
-        job.completed_at = datetime.utcnow()
+        job.completed_at = datetime.now(timezone.utc)
         save_job(job)
         return job
     
@@ -249,7 +267,7 @@ def cancel_docking_job(job_id: str) -> bool:
     
     if job.status == DockingJobStatus.QUEUED:
         job.status = DockingJobStatus.CANCELLED
-        job.completed_at = datetime.utcnow()
+        job.completed_at = datetime.now(timezone.utc)
         save_job(job)
         return True
     

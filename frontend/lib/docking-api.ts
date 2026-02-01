@@ -156,6 +156,7 @@ export const dockingApi = {
     if (filters?.start_date) params.append('start_date', filters.start_date);
     if (filters?.end_date) params.append('end_date', filters.end_date);
     if (filters?.target_id) params.append('target_id', filters.target_id);
+    if (filters?.candidate_id) params.append('candidate_id', filters.candidate_id);
     if (filters?.page) params.append('page', filters.page.toString());
     if (filters?.page_size) params.append('page_size', filters.page_size.toString());
 

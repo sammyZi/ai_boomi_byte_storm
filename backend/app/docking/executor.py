@@ -10,7 +10,7 @@ import os
 import subprocess
 import shutil
 from typing import Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class VinaExecutor:
         if not os.path.exists(config_path):
             return False, "", f"Configuration file not found: {config_path}"
         
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         logger.info(f"Starting Vina execution with config: {config_path}")
         
         try:
@@ -136,7 +136,7 @@ class VinaExecutor:
                 logger.error(f"Vina failed: {error_msg}")
                 return False, stdout_text, error_msg
             
-            elapsed = (datetime.utcnow() - start_time).total_seconds()
+            elapsed = (datetime.now(timezone.utc) - start_time).total_seconds()
             logger.info(f"Vina completed in {elapsed:.1f} seconds")
             
             return True, stdout_text, None
@@ -164,7 +164,7 @@ class VinaExecutor:
         if not os.path.exists(config_path):
             return False, "", f"Configuration file not found: {config_path}"
         
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         logger.info(f"Starting Vina execution with config: {config_path}")
         
         try:
@@ -190,7 +190,7 @@ class VinaExecutor:
                 logger.error(f"Vina failed: {error_msg}")
                 return False, stdout_text, error_msg
             
-            elapsed = (datetime.utcnow() - start_time).total_seconds()
+            elapsed = (datetime.now(timezone.utc) - start_time).total_seconds()
             logger.info(f"Vina completed in {elapsed:.1f} seconds")
             
             return True, stdout_text, None

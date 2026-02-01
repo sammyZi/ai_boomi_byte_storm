@@ -157,6 +157,7 @@ export interface DockingPose {
   binding_affinity: number;
   rmsd_lb: number;
   rmsd_ub: number;
+  pdbqt_data?: string;  // Raw PDBQT data for the pose
 }
 
 export interface DockingJobResult {
@@ -167,6 +168,5 @@ export interface DockingJobResult {
   best_affinity?: number;
   num_poses: number;
   poses: DockingPose[];
-  pdbqt_url?: string;
   error_message?: string;
 }

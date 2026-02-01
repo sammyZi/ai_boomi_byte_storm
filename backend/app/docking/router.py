@@ -28,6 +28,7 @@ from app.docking.service import (
     InvalidJobStateError,
     ESTIMATED_TIME_PER_JOB_SECONDS,
 )
+from app.docking.tasks import get_job, get_all_jobs
 
 
 logger = logging.getLogger(__name__)
@@ -270,20 +271,39 @@ async def get_job_status(
 )
 async def get_job_results(
     job_id: str,
-    service: DockingService = Depends(get_docking_service),
 ) -> JobResultsResponse:
     """Get the results of a completed docking job.
     
     Args:
         job_id: The job identifier
-        service: Docking service instance
     
     Returns:
         Docking results with all poses
     """
-    try:
-        results = await service.get_job_results(job_id)
-        
+    # Use in-memory job store (jobs are stored in tasks.py, not database)
+    job = get_job(job_id)
+    
+    if not job:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": "JOB_NOT_FOUND",
+                "message": f"Docking job not found: {job_id}",
+            }
+        )
+    
+    if job.status not in [DockingJobStatus.COMPLETED, DockingJobStatus.FAILED]:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "JOB_NOT_COMPLETED",
+                "message": f"Job is still {job.status.value}, not yet completed",
+            }
+        )
+    
+    # Build poses from job results (job.results is List[DockingResult])
+    poses = []
+    if job.results:
         poses = [
             PoseResult(
                 pose_number=p.pose_number,
@@ -292,39 +312,20 @@ async def get_job_results(
                 rmsd_ub=p.rmsd_ub,
                 pdbqt_data=p.pdbqt_data,
             )
-            for p in results.poses
+            for p in job.results  # job.results is already a list
         ]
-        
-        return JobResultsResponse(
-            job_id=results.job_id,
-            status=results.status,
-            candidate_id=results.candidate_id,
-            target_uniprot_id=results.target_uniprot_id,
-            best_affinity=results.best_affinity,
-            num_poses=len(poses),
-            poses=poses,
-            completed_at=results.completed_at,
-            error_message=results.error_message,
-        )
-        
-    except JobNotFoundError:
-        raise HTTPException(
-            status_code=404,
-            detail={
-                "error_code": "JOB_NOT_FOUND",
-                "message": f"Docking job not found: {job_id}",
-                "timestamp": datetime.utcnow().isoformat(),
-            }
-        )
-    except InvalidJobStateError as e:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "error_code": "JOB_NOT_COMPLETED",
-                "message": str(e),
-                "timestamp": datetime.utcnow().isoformat(),
-            }
-        )
+    
+    return JobResultsResponse(
+        job_id=job.id,  # DockingJob uses 'id' not 'job_id'
+        status=job.status,
+        candidate_id=job.candidate_id,
+        target_uniprot_id=job.target_uniprot_id,
+        best_affinity=job.best_affinity,  # best_affinity is on job, not job.results
+        num_poses=len(poses),
+        poses=poses,
+        completed_at=job.completed_at,
+        error_message=job.error_message,
+    )
 
 
 @router.delete(
@@ -409,49 +410,57 @@ async def cancel_job(
     """
 )
 async def get_job_history(
-    service: DockingService = Depends(get_docking_service),
     user_id: Optional[str] = None,  # TODO: Get from auth
     status: Optional[DockingJobStatus] = Query(default=None, description="Filter by status"),
     target_uniprot_id: Optional[str] = Query(default=None, description="Filter by target protein"),
+    candidate_id: Optional[str] = Query(default=None, description="Filter by candidate"),
     page: int = Query(default=1, ge=1, description="Page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Jobs per page"),
 ) -> JobHistoryResponse:
     """Get the user's docking job history.
     
     Args:
-        service: Docking service instance
         user_id: User ID for filtering
         status: Optional status filter
         target_uniprot_id: Optional target filter
+        candidate_id: Optional candidate filter
         page: Page number (1-indexed)
         page_size: Number of jobs per page
     
     Returns:
         Paginated job history
     """
-    # For development: if no user_id, return all jobs
-    # In production, this should require authentication
-    offset = (page - 1) * page_size
+    # Use in-memory job store (jobs are stored in tasks.py, not database)
+    all_jobs = get_all_jobs()
     
-    jobs, total = await service.get_user_job_history(
-        user_id=user_id,  # Pass None to get all jobs
-        status=status,
-        target_uniprot_id=target_uniprot_id,
-        limit=page_size,
-        offset=offset,
-    )
+    # Apply filters
+    filtered_jobs = all_jobs
+    if status:
+        filtered_jobs = [j for j in filtered_jobs if j.status == status]
+    if target_uniprot_id:
+        filtered_jobs = [j for j in filtered_jobs if j.target_uniprot_id == target_uniprot_id]
+    if candidate_id:
+        filtered_jobs = [j for j in filtered_jobs if j.candidate_id == candidate_id]
+    
+    # Sort by created_at descending
+    filtered_jobs.sort(key=lambda j: j.created_at or "", reverse=True)
+    
+    # Pagination
+    total = len(filtered_jobs)
+    offset = (page - 1) * page_size
+    paginated_jobs = filtered_jobs[offset:offset + page_size]
     
     job_items = [
         JobHistoryItem(
             job_id=job.id,
             candidate_id=job.candidate_id,
             target_uniprot_id=job.target_uniprot_id,
-            status=DockingJobStatus(job.status),
+            status=job.status,
             best_affinity=job.best_affinity,
             created_at=job.created_at,
             completed_at=job.completed_at,
         )
-        for job in jobs
+        for job in paginated_jobs
     ]
     
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0

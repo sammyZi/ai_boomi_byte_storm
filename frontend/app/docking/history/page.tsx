@@ -140,8 +140,8 @@ export default function DockingJobHistoryPage() {
     try {
       const response = await dockingApi.rerunJob(jobId);
       // Navigate to the new job's tracking page
-      if (response.job_ids && response.job_ids.length > 0) {
-        router.push(`/docking/jobs/${response.job_ids[0]}`);
+      if (response.job_id) {
+        router.push(`/docking/jobs/${response.job_id}`);
       }
     } catch (err) {
       const message = err instanceof DockingApiError

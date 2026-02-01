@@ -621,6 +621,81 @@ async def get_docking_status(job_id: str) -> DockingStatusResponse:
     )
 
 
+@app.get(
+    "/api/docking/jobs/{job_id}/results",
+    responses={
+        200: {
+            "description": "Docking results retrieved"
+        },
+        400: {
+            "description": "Job not completed",
+            "model": ErrorResponse
+        },
+        404: {
+            "description": "Job not found",
+            "model": ErrorResponse
+        }
+    },
+    summary="Get docking job results",
+    description="Get the results of a completed docking job including all poses and binding affinities."
+)
+async def get_docking_results(job_id: str):
+    """Get docking results for a completed job.
+    
+    Args:
+        job_id: The job identifier
+    
+    Returns:
+        Docking results with poses and binding affinities
+    """
+    job = get_job(job_id)
+    
+    if not job:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": "JOB_NOT_FOUND",
+                "message": f"Docking job not found: {job_id}",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+    
+    if job.status not in [DockingJobStatus.COMPLETED, DockingJobStatus.FAILED]:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "JOB_NOT_COMPLETE",
+                "message": f"Job {job_id} is not complete (status: {job.status})",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+    
+    # Build results response
+    poses = []
+    if job.results:
+        for i, result in enumerate(job.results):
+            poses.append({
+                "pose_number": i + 1,
+                "binding_affinity": result.binding_affinity,
+                "rmsd_lb": result.rmsd_lb,
+                "rmsd_ub": result.rmsd_ub,
+                "pdbqt_data": result.pdbqt_data
+            })
+    
+    return {
+        "job_id": job.id,
+        "candidate_id": job.candidate_id,
+        "target_uniprot_id": job.target_uniprot_id,
+        "status": job.status.value,
+        "best_affinity": job.best_affinity,
+        "num_poses": len(poses),
+        "poses": poses,
+        "error_message": job.error_message,
+        "created_at": job.created_at.isoformat() if job.created_at else None,
+        "completed_at": job.completed_at.isoformat() if job.completed_at else None
+    }
+
+
 @app.delete(
     "/api/docking/cancel/{job_id}",
     responses={
