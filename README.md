@@ -1,454 +1,237 @@
 # 🧬 AI-Powered Drug Discovery Platform
 
-<div align="center">
+---
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
-![Python](https://img.shields.io/badge/python-3.11+-green.svg)
-![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)
-![License](https://img.shields.io/badge/license-MIT-orange.svg)
+## 1. Problem Statement
 
-**Transform disease queries into ranked drug candidates in 8-10 seconds**
+Researchers exploring drug candidates for a disease must manually query multiple databases (Open Targets, ChEMBL, AlphaFold), cross-reference results, and analyze molecular properties one by one. This repetitive process takes hours to days for each disease query.
 
-[Features](#-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start) • [API](#-api-documentation) • [Contributing](#-contributing)
-
-</div>
+**This tool automates the lookup and analysis, returning ranked candidates in seconds instead of hours.**
 
 ---
 
-## 📋 Overview
+## 2. Users & Context
 
-The AI-Powered Drug Discovery Platform is a full-stack application that accelerates early-stage drug discovery by automating the proteome-to-cure pipeline. It integrates multiple biomedical databases and AI analysis to identify and rank potential drug candidates for any disease.
+### Target Users
 
-### What It Does
+| User | Need | How We Help |
+|------|------|-------------|
+| **Pharma R&D Teams** | Accelerate target identification | Automated pipeline, batch processing |
+| **Biotech Startups** | Limited screening resources | Free tier, API access |
+| **Academic Researchers** | Reduce repetitive manual work | One-click disease-to-drug search |
+| **Biochemistry Students** | Learning tool for drug discovery | Visual results, AI explanations |
 
-1. **Disease → Targets**: Identifies protein targets associated with diseases (Open Targets API)
-2. **Targets → Structures**: Retrieves 3D protein structures (AlphaFold Database)
-3. **Targets → Molecules**: Finds bioactive molecules tested against targets (ChEMBL Database)
-4. **Molecules → Properties**: Calculates molecular properties and toxicity (RDKit)
-5. **Properties → Scores**: Scores and ranks drug candidates using composite scoring
-6. **Candidates → Insights**: Generates AI-powered analysis (BioMistral-7B via Ollama)
-7. **Optional Docking**: Performs molecular docking simulations (AutoDock Vina)
+### Use Cases
 
----
-
-## ✨ Features
-
-### Core Capabilities
-
-| Feature | Description |
-|---------|-------------|
-| 🔍 **Disease Search** | Query any disease and get relevant drug candidates |
-| 🎯 **Target Identification** | Automatic discovery of protein targets using Open Targets |
-| 🧪 **Molecule Discovery** | Retrieval of bioactive compounds from ChEMBL |
-| 📊 **Property Analysis** | Drug-likeness, toxicity, and ADMET property calculations |
-| 🤖 **AI Analysis** | BioMistral-7B powered insights for each candidate |
-| ⚡ **Fast Performance** | Results in 8-10 seconds with aggressive caching |
-| 🔬 **Molecular Docking** | AutoDock Vina integration for binding affinity predictions |
-
-### Technical Highlights
-
-- **Concurrent Processing**: Async/await architecture for parallel API calls
-- **Smart Caching**: 24-hour TTL Redis cache for API responses
-- **Graceful Degradation**: Continues processing when non-critical components fail
-- **Property-Based Testing**: Hypothesis framework for robust testing
-- **Rate Limiting**: Protection against API abuse (100 req/min)
-- **Modern UI**: Next.js 14 with responsive Tailwind CSS design
+- **Early-stage screening**: Quickly identify promising drug candidates for a disease
+- **Target validation**: Verify protein targets with AlphaFold structures
+- **Literature review acceleration**: AI-generated summaries of candidate potential
+- **Educational demonstrations**: Teach drug discovery pipeline concepts
 
 ---
 
-## 🏗 Architecture
+## 3. Solution Overview
+
+**Input**: Disease name (e.g., "Alzheimer's disease")  
+**Output**: Ranked list of drug candidates with scores, properties, and AI analysis
+
+### Pipeline Flow
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                              Frontend                                    │
-│                    Next.js 14 + TypeScript + Tailwind                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐   │
-│  │   Search    │  │   Results   │  │  Candidate  │  │   Docking   │   │
-│  │    Page     │  │    Page     │  │   Details   │  │   Tracker   │   │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘   │
-└────────────────────────────────┬────────────────────────────────────────┘
-                                 │ REST API
-┌────────────────────────────────▼────────────────────────────────────────┐
-│                              Backend                                     │
-│                         FastAPI + Python 3.11+                          │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                     Discovery Pipeline                           │   │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐│   │
-│  │  │  Open    │  │ AlphaFold│  │  ChEMBL  │  │    BioMistral    ││   │
-│  │  │ Targets  │  │  Client  │  │  Client  │  │     AI Engine    ││   │
-│  │  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘│   │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────────────────────────┐  │   │
-│  │  │  RDKit   │  │ Scoring  │  │     Docking Service          │  │   │
-│  │  │ Analyzer │  │  Engine  │  │   (AutoDock Vina + Celery)   │  │   │
-│  │  └──────────┘  └──────────┘  └──────────────────────────────┘  │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────┬────────────────────────────────────────────────┘
-                          │
-┌─────────────────────────▼────────────────────────────────────────────────┐
-│                        External Services                                  │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
-│  │  Redis   │  │  SQLite  │  │  Ollama  │  │  Open    │  │  ChEMBL  │  │
-│  │  Cache   │  │   (DB)   │  │(BioMist) │  │ Targets  │  │   API    │  │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────┘  │
-└──────────────────────────────────────────────────────────────────────────┘
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│  Search  │───▶│ Targets  │───▶│ Molecules│───▶│ Analysis │───▶│  Score   │───▶│ Results  │
+│ Disease  │    │ Proteins │    │ from DB  │    │ RDKit    │    │  Rank    │    │ Top 20   │
+└──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘
+                    │                │                │
+                    ▼                ▼                ▼
+              Open Targets       ChEMBL          BioMistral
+              + AlphaFold                        AI Analysis
+```
+
+### Architecture
+
+```
+Frontend (Next.js 14 + TypeScript + Tailwind)
+                    │
+                    ▼ REST API
+Backend (FastAPI + Python 3.11)
+    ├── Discovery Pipeline
+    │   ├── Open Targets Client (disease → proteins)
+    │   ├── AlphaFold Client (protein → 3D structure)
+    │   ├── ChEMBL Client (protein → molecules)
+    │   ├── RDKit Analyzer (molecule → properties)
+    │   ├── Scoring Engine (properties → rank)
+    │   └── BioMistral Engine (candidate → AI analysis)
+    ├── Docking Service (AutoDock Vina + Celery)
+    └── Cache Layer (Redis, 24-hour TTL)
 ```
 
 ---
 
-## 📁 Project Structure
-
-```
-ai_boomi/
-├── backend/                      # FastAPI Backend
-│   ├── app/
-│   │   ├── main.py              # FastAPI application entry point
-│   │   ├── models.py            # Pydantic data models
-│   │   ├── discovery_pipeline.py # Main orchestration logic
-│   │   ├── open_targets_client.py # Open Targets API client
-│   │   ├── alphafold_client.py  # AlphaFold API client
-│   │   ├── chembl_client.py     # ChEMBL API client
-│   │   ├── rdkit_analyzer.py    # Molecular property calculations
-│   │   ├── scoring_engine.py    # Candidate scoring & ranking
-│   │   ├── biomistral_engine.py # AI analysis engine
-│   │   ├── cache.py             # Redis cache layer
-│   │   ├── rate_limiter.py      # Rate limiting middleware
-│   │   └── docking/             # Molecular docking module
-│   │       ├── router.py        # Docking API endpoints
-│   │       ├── service.py       # Job management service
-│   │       ├── executor.py      # AutoDock Vina executor
-│   │       └── ...
-│   ├── config/
-│   │   └── settings.py          # Environment configuration
-│   ├── tests/                   # Comprehensive test suite
-│   ├── requirements.txt         # Python dependencies
-│   └── docker-compose.yml       # Docker setup for Redis
-│
-├── frontend/                     # Next.js Frontend
-│   ├── app/
-│   │   ├── page.tsx             # Home page with search
-│   │   ├── results/             # Discovery results page
-│   │   ├── candidates/          # Candidate details
-│   │   ├── docking/             # Docking job tracking
-│   │   └── about/               # Platform information
-│   ├── components/              # Reusable UI components
-│   │   ├── SearchBar.tsx        # Disease search input
-│   │   ├── CandidateCard.tsx    # Drug candidate display
-│   │   ├── ScoreDisplay.tsx     # Score visualization
-│   │   ├── MoleculeViewer3D.tsx # 3D structure viewer
-│   │   └── ...
-│   ├── hooks/                   # Custom React hooks
-│   ├── lib/                     # API client & utilities
-│   └── types/                   # TypeScript definitions
-│
-└── README.md                    # This file
-```
-
----
-
-## 🚀 Quick Start
+## 4. Setup & Run
 
 ### Prerequisites
 
-- **Python 3.11+** - [Download](https://www.python.org/downloads/)
-- **Node.js 18+** - [Download](https://nodejs.org/)
-- **Redis** - For caching (or use Docker)
-- **Ollama** (optional) - For AI analysis [Download](https://ollama.ai/)
+- Python 3.11+
+- Node.js 18+
+- Redis (or Docker)
+- Ollama (optional, for AI analysis)
 
-### 1. Clone the Repository
-
-```bash
-git clone <repository-url>
-cd ai_boomi
-```
-
-### 2. Backend Setup
+### Backend Setup
 
 ```bash
-# Navigate to backend
 cd backend
-
-# Create virtual environment
 python -m venv venv
-
-# Activate (Windows PowerShell)
-.\venv\Scripts\Activate.ps1
-
-# Activate (Linux/Mac)
-source venv/bin/activate
-
-# Install dependencies
+.\venv\Scripts\Activate.ps1    # Windows
+# source venv/bin/activate     # Linux/Mac
 pip install -r requirements.txt
-
-# Start Redis (using Docker)
-docker-compose up -d
-
-# Run the backend
-python run.py
+docker-compose up -d           # Start Redis
+python run.py                  # Start backend at localhost:8000
 ```
 
-The backend will be available at `http://localhost:8000`
-
-### 3. Frontend Setup
+### Frontend Setup
 
 ```bash
-# Navigate to frontend (new terminal)
 cd frontend
-
-# Install dependencies
 npm install
-
-# Create environment file
 echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
-
-# Start development server
-npm run dev
+npm run dev                    # Start frontend at localhost:3000
 ```
 
-The frontend will be available at `http://localhost:3000`
-
-### 4. Optional: AI Analysis Setup
+### Optional: AI Analysis
 
 ```bash
-# Install Ollama and pull BioMistral model
+# Install Ollama from https://ollama.ai
 ollama pull biomistral
 ```
 
----
+### Verify Installation
 
-## 🔌 API Documentation
-
-### Main Endpoint
-
-#### `POST /api/discover`
-
-Transform a disease query into ranked drug candidates.
-
-**Request:**
-```json
-{
-  "disease_name": "Alzheimer's disease",
-  "max_targets": 5,
-  "max_molecules_per_target": 20
-}
-```
-
-**Response:**
-```json
-{
-  "query": "Alzheimer's disease",
-  "candidates": [
-    {
-      "chembl_id": "CHEMBL12345",
-      "name": "Example Compound",
-      "smiles": "CC(=O)Nc1ccc(O)cc1",
-      "score": 0.85,
-      "binding_affinity_score": 0.9,
-      "drug_likeness_score": 0.8,
-      "safety_score": 0.85,
-      "target": {
-        "uniprot_id": "P12345",
-        "gene_symbol": "APP",
-        "name": "Amyloid-beta precursor protein"
-      },
-      "properties": {
-        "molecular_weight": 325.4,
-        "logp": 2.1,
-        "hbd": 2,
-        "hba": 4
-      },
-      "ai_analysis": "This compound shows promise..."
-    }
-  ],
-  "processing_time_ms": 8500,
-  "targets_found": 5,
-  "molecules_screened": 100
-}
-```
-
-### Docking Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/docking/submit` | Submit docking job(s) |
-| GET | `/api/docking/status/{job_id}` | Get job status |
-| GET | `/api/docking/results/{job_id}` | Get docking results |
-| DELETE | `/api/docking/cancel/{job_id}` | Cancel a job |
-| GET | `/api/docking/jobs` | List user's jobs |
-
-### Other Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | API information |
-| GET | `/health` | Health check |
-| GET | `/docs` | Interactive Swagger documentation |
-| GET | `/redoc` | ReDoc documentation |
+1. Open `http://localhost:3000`
+2. Search for "diabetes"
+3. Results should appear in 8-10 seconds
 
 ---
 
-## 🧮 Scoring Algorithm
+## 5. Models & Data
 
-Drug candidates are ranked using a composite score:
+### Data Sources
+
+| Source | Data | License | URL |
+|--------|------|---------|-----|
+| **Open Targets** | Disease-protein associations | Apache 2.0 | https://platform.opentargets.org |
+| **ChEMBL** | Bioactive molecules (2.4M compounds) | CC BY-SA 3.0 | https://www.ebi.ac.uk/chembl |
+| **AlphaFold DB** | Protein 3D structures (200M proteins) | CC BY 4.0 | https://alphafold.ebi.ac.uk |
+
+### AI Model
+
+| Model | Purpose | License | Notes |
+|-------|---------|---------|-------|
+| **BioMistral-7B** | Drug candidate analysis | Apache 2.0 | Run locally via Ollama, no data sent externally |
+
+### Cheminformatics
+
+| Library | Purpose | License |
+|---------|---------|---------|
+| **RDKit** | Molecular property calculation | BSD-3-Clause |
+| **OpenBabel** | Molecular format conversion | GPL-2.0 |
+| **AutoDock Vina** | Molecular docking | Apache 2.0 |
+
+### Scoring Algorithm
 
 ```
 Composite Score = (0.40 × Binding) + (0.30 × Drug-likeness) + (0.20 × Safety) + (0.10 × Novelty)
-```
 
-| Component | Weight | Calculation |
-|-----------|--------|-------------|
-| **Binding Affinity** | 40% | Normalized pChEMBL value (4-10 → 0-1) |
-| **Drug-likeness** | 30% | Lipinski's Rule of Five compliance |
-| **Safety** | 20% | Toxicophore absence score |
-| **Novelty** | 10% | Structural uniqueness vs known drugs |
-
----
-
-## 🧪 Testing
-
-### Backend Tests
-
-```bash
-cd backend
-
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=app --cov-report=html
-
-# Run specific test types
-pytest tests/test_*_unit.py        # Unit tests
-pytest tests/test_*_properties.py  # Property-based tests
-pytest tests/test_integration.py   # Integration tests
-```
-
-### Frontend Tests
-
-```bash
-cd frontend
-
-# Run tests
-npm test
-
-# Run with coverage
-npm run test:coverage
-
-# Watch mode
-npm run test:watch
+Where:
+- Binding: Normalized pChEMBL value (4-10 → 0-1)
+- Drug-likeness: Lipinski's Rule of Five compliance
+- Safety: Absence of toxicophores (10 patterns checked)
+- Novelty: Structural uniqueness score
 ```
 
 ---
 
-## 🛠 Technology Stack
+## 6. Evaluation & Guardrails
 
-### Backend
+### AI Hallucination Mitigation
 
-| Technology | Purpose |
-|------------|---------|
-| FastAPI | Web framework with async support |
-| Python 3.11+ | Core language |
-| Redis | Caching layer (24-hour TTL) |
-| SQLite/PostgreSQL | Database for docking jobs |
-| RDKit | Cheminformatics library |
-| Celery | Async task queue for docking |
-| OpenBabel | Molecular format conversion |
-| AutoDock Vina | Molecular docking |
+| Risk | Mitigation |
+|------|------------|
+| **Fabricated data** | AI only analyzes data from validated sources (ChEMBL, Open Targets) |
+| **Incorrect analysis** | Validation layer checks AI output mentions correct molecule name and disease |
+| **Generic responses** | Filter rejects responses that don't contain specific scientific content |
+| **Timeout handling** | 30-second timeout with graceful fallback (results returned without AI analysis) |
 
-### Frontend
+### Bias Mitigation
 
-| Technology | Purpose |
-|------------|---------|
-| Next.js 14 | React framework with App Router |
-| TypeScript | Type safety |
-| Tailwind CSS | Styling |
-| TanStack Query | Data fetching & caching |
-| Zustand | State management |
-| NGL Viewer | 3D molecular visualization |
+| Risk | Mitigation |
+|------|------------|
+| **Database bias** | ChEMBL/Open Targets have established curation processes |
+| **Scoring bias** | Transparent formula with published weights |
+| **AI bias** | BioMistral trained on biomedical literature, not user data |
 
-### External APIs
+### Input Validation
 
-| Service | Purpose |
-|---------|---------|
-| Open Targets | Disease-target associations |
-| ChEMBL | Bioactive molecules database |
-| AlphaFold | Protein 3D structures |
-| Ollama + BioMistral | AI analysis |
+- Disease names: 2-200 characters, sanitized
+- Rate limiting: 100 requests/minute per IP
+- SMILES validation: RDKit parser rejects malformed molecules
+
+### Output Safeguards
+
+- Medical disclaimer displayed prominently
+- Results labeled as "computational predictions, not clinical recommendations"
+- Export includes data provenance (source database, retrieval date)
 
 ---
 
-## ⚙️ Configuration
+## 7. Known Limitations & Risks
 
-### Environment Variables (Backend)
+### Technical Limitations
 
-Create a `.env` file in the `backend/` directory:
+| Limitation | Impact | Workaround |
+|------------|--------|------------|
+| **External API dependency** | Service unavailable if Open Targets/ChEMBL down | 24-hour cache reduces impact |
+| **AI analysis optional** | Requires Ollama + GPU for best performance | Works without AI (scoring still functions) |
+| **Docking is slow** | 5-30 minutes per job | Background queue with status tracking |
+| **Limited to known molecules** | Cannot predict novel compounds | Future: generative models |
 
-```env
-# Server
-HOST=0.0.0.0
-PORT=8000
-LOG_LEVEL=INFO
+### Scientific Limitations
 
-# Redis
-REDIS_URL=redis://localhost:6379
+| Limitation | Impact |
+|------------|--------|
+| **Computational predictions only** | Not validated in wet lab or clinical trials |
+| **Binding affinity estimates** | pChEMBL values are experimental, but context-dependent |
+| **No ADMET predictions** | Absorption, distribution, metabolism, excretion not modeled |
+| **No off-target analysis** | Potential side effects not predicted |
 
-# AI (optional)
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=biomistral
-OLLAMA_TIMEOUT=30
+### Risk Disclosure
 
-# Rate Limiting
-RATE_LIMIT_REQUESTS=100
-RATE_LIMIT_PERIOD=60
+⚠️ **This platform is for research and educational purposes only.**
 
-# Database
-DATABASE_URL=sqlite+aiosqlite:///./docking.db
-```
-
-### Environment Variables (Frontend)
-
-Create a `.env.local` file in the `frontend/` directory:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
+- Drug candidates are computational predictions
+- Results have NOT been validated through clinical trials
+- Do NOT use for clinical decision-making
+- Consult qualified professionals before any drug development
 
 ---
 
-## 📈 Performance
+## 8. Team
 
-| Metric | Value |
-|--------|-------|
-| End-to-end latency | 8-10 seconds |
-| Cache hit response | <100ms |
-| Concurrent API calls | Up to 5 per external service |
-| Cache TTL | 24 hours |
-| Rate limit | 100 requests/minute |
+| Name | Role | Contact |
+|------|------|---------|
+| **[Your Name]** | Project Lead / Full-Stack Developer | your.email@example.com |
+| **[Team Member]** | Backend Developer | email@example.com |
+| **[Team Member]** | ML Engineer | email@example.com |
 
----
-
-## 🤝 Contributing
+### Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
+2. Create a feature branch (`git checkout -b feature/name`)
+3. Commit changes (`git commit -m 'Add feature'`)
+4. Push to branch (`git push origin feature/name`)
 5. Open a Pull Request
 
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## ⚠️ Disclaimer
-
-This platform is intended for **research and educational purposes only**. The drug candidates identified are computational predictions and have not been validated through clinical trials. Always consult with qualified healthcare professionals and regulatory bodies before any drug development activities.
-
----
-
-## 📞 Support
+### Support
 
 - 📚 [Backend Documentation](backend/README.md)
 - 📚 [Frontend Documentation](frontend/README.md)
@@ -457,6 +240,12 @@ This platform is intended for **research and educational purposes only**. The dr
 
 ---
 
+## License
+
+MIT License - See [LICENSE](LICENSE) for details.
+
+---
+
 <div align="center">
-  <strong>Built with ❤️ for accelerating drug discovery</strong>
+  <strong>Built for accelerating drug discovery research</strong>
 </div>
