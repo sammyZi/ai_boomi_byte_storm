@@ -9,6 +9,13 @@ Researchers exploring drug candidates for a disease must manually query multiple
 **This tool automates the lookup, analysis, and molecular docking—returning ranked candidates in seconds and docking results in minutes instead of hours.**
 
 ---
+## Demo
+
+
+https://github.com/user-attachments/assets/0a260e02-52ce-475c-b805-630f5d0d1b42
+
+
+---
 
 ## 2. Users & Context
 
