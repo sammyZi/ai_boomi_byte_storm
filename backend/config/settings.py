@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     
     # API Configuration (Requirements 13.1, 13.4)
     api_port: int = Field(default=8000, ge=1, le=65535, description="API server port number")
-    api_host: str = Field(default="0.0.0.0", description="API server host address")
+    api_host: str = Field(default="127.0.0.1", description="API server host address")
     cors_origins: str = Field(default="http://localhost:3000", description="Comma-separated list of allowed CORS origins")
     
     # External APIs (Requirement 13.1)

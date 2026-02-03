@@ -90,13 +90,12 @@ export default function SearchBar({ onSearch, isLoading, initialValue = '' }: Se
             onBlur={() => setTimeout(() => setShowAutocomplete(false), 200)}
             placeholder="Enter disease name (e.g., Alzheimer's disease)"
             disabled={isLoading}
-            className={`w-full px-5 py-3 pl-12 pr-5 text-base border-2 rounded-xl focus:outline-none focus:ring-4 transition-all shadow-md ${
-              showError
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-100 bg-white'
-                : 'border-blue-200 focus:border-blue-500 focus:ring-blue-100 group-hover:border-blue-400 bg-white/95 backdrop-blur-sm'
-            } ${isLoading ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+            className={`w-full px-5 py-3 pl-12 pr-5 text-base border-2 rounded-xl focus:outline-none focus:ring-4 transition-all shadow-md ${showError
+              ? 'border-red-300 focus:border-red-500 focus:ring-red-100 bg-white'
+              : 'border-blue-200 focus:border-blue-500 focus:ring-blue-100 group-hover:border-blue-400 bg-white/95 backdrop-blur-sm'
+              } ${isLoading ? 'bg-gray-50 cursor-not-allowed' : ''}`}
           />
-          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 w-7 h-7 flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md shadow-blue-500/30">
+          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 w-7 h-7 flex items-center justify-center bg-blue-600 rounded-lg">
             <Search className="w-4 h-4 text-white" strokeWidth={2.5} />
           </div>
         </div>
@@ -132,9 +131,8 @@ export default function SearchBar({ onSearch, isLoading, initialValue = '' }: Se
               key={disease}
               type="button"
               onClick={() => handleSelect(disease)}
-              className={`w-full text-left px-6 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 ${
-                index === selectedIndex ? 'bg-blue-100' : ''
-              }`}
+              className={`w-full text-left px-6 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 ${index === selectedIndex ? 'bg-blue-100' : ''
+                }`}
             >
               <span
                 className="text-base"
