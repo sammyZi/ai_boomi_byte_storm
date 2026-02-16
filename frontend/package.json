@@ -15,6 +15,7 @@
     "@tanstack/react-query": "^5.90.20",
     "axios": "^1.13.4",
     "lucide-react": "^0.563.0",
+    "molstar": "^5.6.1",
     "next": "14.2.35",
     "ngl": "^2.4.0",
     "react": "^18",

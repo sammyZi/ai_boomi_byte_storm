@@ -1,12 +1,11 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import DockingJobTracker from '@/components/DockingJobTracker';
+import CompactNav from '@/components/CompactNav';
 
 export default function DockingJobPage() {
   const params = useParams();
-  const router = useRouter();
   const jobId = params.jobId as string;
 
   const handleComplete = (completedJobId: string) => {
@@ -19,17 +18,10 @@ export default function DockingJobPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pt-24 pb-12">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Back Button */}
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm font-medium">Back</span>
-        </button>
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <CompactNav title="Docking Job Status" />
+      
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Title */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Docking Job Status</h1>
@@ -48,7 +40,7 @@ export default function DockingJobPage() {
         {/* Help Text */}
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>
-            Docking simulations typically take 5-15 minutes depending on molecule complexity.
+            Docking simulations typically take 2-5 minutes depending on molecule complexity.
           </p>
           <p className="mt-1">
             You can close this page and return later - your job will continue running.

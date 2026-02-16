@@ -126,6 +126,11 @@ export default function DockingResultsViewer({ jobId, result: initialResult, sho
     return currentPose?.pdbqt_data && currentPose.pdbqt_data.length > 0;
   }, [currentPose]);
 
+  // Check if we have protein structure data
+  const hasProteinData = useMemo(() => {
+    return results?.protein_pdbqt && results.protein_pdbqt.length > 0;
+  }, [results]);
+
   // Handle PDBQT download - download the actual PDBQT data
   const handleDownloadPDBQT = useCallback(() => {
     if (!currentPose?.pdbqt_data) return;
@@ -147,6 +152,39 @@ export default function DockingResultsViewer({ jobId, result: initialResult, sho
       setIsDownloading(false);
     }
   }, [currentPose, effectiveJobId, selectedPose]);
+
+  // Download the full protein-ligand complex
+  const handleDownloadComplex = useCallback(() => {
+    if (!currentPose?.pdbqt_data || !results?.protein_pdbqt) return;
+    
+    setIsDownloading(true);
+    try {
+      // Combine protein and ligand PDBQT data with clear separation
+      const complexData = `REMARK  Protein-Ligand Docking Complex
+REMARK  Job ID: ${effectiveJobId}
+REMARK  Pose: ${selectedPose}
+REMARK  Binding Affinity: ${currentPose.binding_affinity} kcal/mol
+REMARK  ==================== PROTEIN ====================
+${results.protein_pdbqt}
+REMARK  ==================== LIGAND ====================
+${currentPose.pdbqt_data}
+END`;
+      
+      const blob = new Blob([complexData], { type: 'chemical/x-pdbqt' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `complex_${effectiveJobId}_pose${selectedPose}.pdbqt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download complex failed:', err);
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [currentPose, results, effectiveJobId, selectedPose]);
 
   // Handle CSV download
   const handleDownloadCSV = useCallback(() => {
@@ -230,10 +268,10 @@ export default function DockingResultsViewer({ jobId, result: initialResult, sho
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-gray-200 px-6 py-4">
+      <div className="bg-indigo-50 border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
               <Atom className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -356,46 +394,576 @@ export default function DockingResultsViewer({ jobId, result: initialResult, sho
           </button>
         </div>
 
-        {/* 3D Structure Info Panel */}
+        {/* 3D Molecular Viewer with 3Dmol.js */}
         {showVisualization && (
           <div
-            className={`relative bg-gradient-to-br from-gray-900 to-indigo-900 rounded-xl overflow-hidden border border-gray-300 transition-all duration-300 ${
-              isExpanded ? 'h-[400px]' : 'h-[250px]'
+            className={`relative bg-white rounded-xl overflow-hidden border border-gray-300 transition-all duration-300 ${
+              isExpanded ? 'h-[600px]' : 'h-[450px]'
             }`}
           >
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300">
-              <Atom className="w-16 h-16 mb-4 opacity-70 text-indigo-400" />
-              <p className="text-lg font-medium text-white">Ligand Pose #{selectedPose}</p>
-              {hasPdbqtData ? (
-                <>
-                  <p className="text-sm mt-2 text-indigo-300">
-                    PDBQT structure data available ({Math.round((currentPose?.pdbqt_data?.length || 0) / 1024)} KB)
-                  </p>
-                  <p className="text-xs mt-1 text-gray-400">
-                    Download the PDBQT file to view in molecular visualization software
-                  </p>
+            {hasPdbqtData ? (
+              <>
+                <iframe
+                  key={`pose-${selectedPose}-${effectiveJobId}-${hasProteinData}-${showHBonds}-${showHydrophobic}`}
+                  srcDoc={(() => {
+                    // Safely escape the data for embedding
+                    const escapeForJs = (str: string | undefined) => {
+                      if (!str) return '';
+                      return str
+                        .replace(/\\/g, '\\\\')
+                        .replace(/`/g, '\\`')
+                        .replace(/\$/g, '\\$')
+                        .replace(/\r\n/g, '\\n')
+                        .replace(/\n/g, '\\n');
+                    };
+                    
+                    const proteinDataEscaped = escapeForJs(results?.protein_pdbqt);
+                    const ligandDataEscaped = escapeForJs(currentPose?.pdbqt_data);
+                    
+                    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://3Dmol.csb.pitt.edu/build/3Dmol-min.js"><\/script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      overflow: hidden; 
+    }
+    #viewer { width: 100%; height: 100vh; position: relative; }
+    
+    .controls-panel {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      z-index: 100;
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(10px);
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      border: 1px solid rgba(255,255,255,0.8);
+    }
+    
+    .controls-section {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    
+    .controls-section:last-child { margin-bottom: 0; }
+    
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      min-width: 75px;
+      padding-right: 8px;
+      border-right: 2px solid #e2e8f0;
+      margin-right: 8px;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    
+    .control-btn {
+      padding: 6px 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      color: #475569;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    
+    .control-btn:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      color: #1e293b;
+      transform: translateY(-1px);
+    }
+    
+    .control-btn.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+      box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+    }
+    
+    .control-btn.active-cyan {
+      background: #06b6d4;
+      color: white;
+      border-color: #06b6d4;
+    }
+    
+    .control-btn.active-amber {
+      background: #f59e0b;
+      color: white;
+      border-color: #f59e0b;
+    }
+    
+    .control-btn.active-green {
+      background: #10b981;
+      color: white;
+      border-color: #10b981;
+    }
+    
+    .info-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(10px);
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,0.8);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      z-index: 100;
+    }
+    
+    .pose-label {
+      font-weight: 700;
+      color: #1e293b;
+      font-size: 14px;
+    }
+    
+    .affinity {
+      color: #059669;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    
+    .legend {
+      margin-top: 8px;
+      font-size: 10px;
+      color: #64748b;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+    
+    .legend-line {
+      width: 16px;
+      height: 3px;
+      border-radius: 2px;
+    }
+    
+    .status-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(16,185,129,0.95);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 600;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(16,185,129,0.3);
+    }
+  </style>
+</head>
+<body>
+  <div id="viewer"></div>
+  
+  <div class="info-badge">
+    <div>
+      <span class="pose-label">Pose #${selectedPose}</span>
+      <span class="affinity">${currentPose?.binding_affinity?.toFixed(2)} kcal/mol</span>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-color" style="background:linear-gradient(90deg,#818cf8,#3b82f6,#06b6d4)"></span> Protein</div>
+      <div class="legend-item"><span class="legend-color" style="background:#10b981"></span> Ligand</div>
+      <div class="legend-item"><span class="legend-line" style="background:#06b6d4"></span> H-Bonds</div>
+      <div class="legend-item"><span class="legend-line" style="background:#f59e0b"></span> Hydrophobic</div>
+    </div>
+  </div>
+  
+  <div id="statusBadge" class="status-badge" style="display:none;">Protein Loaded</div>
+  
+  <div class="controls-panel">
+    <div class="controls-section">
+      <span class="section-label">Protein</span>
+      <div class="btn-group">
+        <button class="control-btn active" id="btn-cartoon" onclick="setProteinStyle('cartoon')">Cartoon</button>
+        <button class="control-btn" id="btn-ribbon" onclick="setProteinStyle('ribbon')">Ribbon</button>
+        <button class="control-btn" id="btn-surface" onclick="setProteinStyle('surface')">Surface</button>
+        <button class="control-btn" id="btn-stick-p" onclick="setProteinStyle('stick')">Stick</button>
+      </div>
+    </div>
+    
+    <div class="controls-section">
+      <span class="section-label">Ligand</span>
+      <div class="btn-group">
+        <button class="control-btn active-green" id="btn-stick-l" onclick="setLigandStyle('stick')">Stick</button>
+        <button class="control-btn" id="btn-sphere-l" onclick="setLigandStyle('sphere')">Sphere</button>
+        <button class="control-btn" id="btn-ballstick" onclick="setLigandStyle('ballstick')">Ball+Stick</button>
+      </div>
+    </div>
+    
+    <div class="controls-section">
+      <span class="section-label">Interactions</span>
+      <div class="btn-group">
+        <button class="control-btn ${showHBonds ? 'active-cyan' : ''}" id="btn-hbonds" onclick="toggleHBonds()">H-Bonds</button>
+        <button class="control-btn ${showHydrophobic ? 'active-amber' : ''}" id="btn-hydro" onclick="toggleHydrophobic()">Hydrophobic</button>
+        <button class="control-btn" id="btn-binding" onclick="showBindingSite()">Binding Site</button>
+      </div>
+    </div>
+    
+    <div class="controls-section">
+      <span class="section-label">View</span>
+      <div class="btn-group">
+        <button class="control-btn" onclick="resetView()">Reset</button>
+        <button class="control-btn" onclick="zoomLigand()">Focus Ligand</button>
+        <button class="control-btn" onclick="toggleSpin()">Spin</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    var viewer = $3Dmol.createViewer("viewer", {
+      backgroundColor: 'white',
+      antialias: true
+    });
+    
+    var proteinData = \`${proteinDataEscaped}\`;
+    var ligandData = \`${ligandDataEscaped}\`;
+    
+    var proteinModel = null;
+    var ligandModel = null;
+    var proteinStyle = 'cartoon';
+    var ligandStyle = 'stick';
+    var hbondsVisible = ${showHBonds};
+    var hydrophobicVisible = ${showHydrophobic};
+    var bindingSiteActive = false;
+    var spinning = false;
+    var surfaceObj = null;
+    
+    // Parse newlines back
+    proteinData = proteinData.replace(/\\\\n/g, '\\n');
+    ligandData = ligandData.replace(/\\\\n/g, '\\n');
+    
+    // Add protein model
+    if (proteinData && proteinData.trim().length > 10) {
+      try {
+        proteinModel = viewer.addModel(proteinData, "pdbqt");
+        viewer.setStyle({model: proteinModel}, {
+          cartoon: { color: 'spectrum', opacity: 0.9 }
+        });
+        document.getElementById('statusBadge').style.display = 'block';
+        setTimeout(function() {
+          document.getElementById('statusBadge').style.display = 'none';
+        }, 2000);
+      } catch(e) {
+        console.error('Protein load error:', e);
+      }
+    }
+    
+    // Add ligand model
+    if (ligandData && ligandData.trim().length > 10) {
+      try {
+        ligandModel = viewer.addModel(ligandData, "pdbqt");
+        viewer.setStyle({model: ligandModel}, {
+          stick: { colorscheme: 'greenCarbon', radius: 0.2 }
+        });
+        // Highlight heteroatoms
+        viewer.addStyle({model: ligandModel, elem: 'N'}, {sphere: {color: '#3b82f6', radius: 0.3}});
+        viewer.addStyle({model: ligandModel, elem: 'O'}, {sphere: {color: '#ef4444', radius: 0.3}});
+        viewer.addStyle({model: ligandModel, elem: 'S'}, {sphere: {color: '#eab308', radius: 0.35}});
+        viewer.addStyle({model: ligandModel, elem: 'F'}, {sphere: {color: '#22c55e', radius: 0.25}});
+        viewer.addStyle({model: ligandModel, elem: 'Cl'}, {sphere: {color: '#22c55e', radius: 0.4}});
+        viewer.addStyle({model: ligandModel, elem: 'Br'}, {sphere: {color: '#a855f7', radius: 0.45}});
+      } catch(e) {
+        console.error('Ligand load error:', e);
+      }
+    }
+    
+    viewer.zoomTo();
+    viewer.render();
+    viewer.zoom(0.9, 500);
+    
+    // Show initial interactions
+    if (hbondsVisible) showHBonds();
+    if (hydrophobicVisible) showHydrophobicContacts();
+    
+    function setProteinStyle(style) {
+      if (!proteinModel) return;
+      proteinStyle = style;
+      
+      // Clear surface if exists
+      if (surfaceObj) {
+        viewer.removeSurface(surfaceObj);
+        surfaceObj = null;
+      }
+      
+      // Update button states
+      ['cartoon', 'ribbon', 'surface', 'stick-p'].forEach(function(s) {
+        var btn = document.getElementById('btn-' + s);
+        if (btn) btn.classList.remove('active');
+      });
+      document.getElementById('btn-' + style).classList.add('active');
+      
+      if (style === 'cartoon') {
+        viewer.setStyle({model: proteinModel}, {
+          cartoon: { color: 'spectrum', opacity: 0.9 }
+        });
+      } else if (style === 'ribbon') {
+        viewer.setStyle({model: proteinModel}, {
+          ribbon: { color: 'spectrum', opacity: 0.9 }
+        });
+      } else if (style === 'surface') {
+        viewer.setStyle({model: proteinModel}, {
+          cartoon: { color: 'spectrum', opacity: 0.3 }
+        });
+        surfaceObj = viewer.addSurface($3Dmol.SurfaceType.MS, {
+          opacity: 0.75,
+          color: 'white'
+        }, {model: proteinModel});
+      } else if (style === 'stick-p') {
+        viewer.setStyle({model: proteinModel}, {
+          stick: { colorscheme: 'amino', radius: 0.12 }
+        });
+      }
+      
+      viewer.render();
+    }
+    
+    function setLigandStyle(style) {
+      if (!ligandModel) return;
+      ligandStyle = style;
+      
+      // Update button states
+      ['stick-l', 'sphere-l', 'ballstick'].forEach(function(s) {
+        var btn = document.getElementById('btn-' + s);
+        if (btn) {
+          btn.classList.remove('active-green');
+          btn.classList.remove('active');
+        }
+      });
+      
+      var btnId = style === 'stick' ? 'btn-stick-l' : (style === 'sphere' ? 'btn-sphere-l' : 'btn-ballstick');
+      document.getElementById(btnId).classList.add('active-green');
+      
+      if (style === 'stick') {
+        viewer.setStyle({model: ligandModel}, {
+          stick: { colorscheme: 'greenCarbon', radius: 0.2 }
+        });
+        viewer.addStyle({model: ligandModel, elem: 'N'}, {sphere: {color: '#3b82f6', radius: 0.3}});
+        viewer.addStyle({model: ligandModel, elem: 'O'}, {sphere: {color: '#ef4444', radius: 0.3}});
+      } else if (style === 'sphere') {
+        viewer.setStyle({model: ligandModel}, {
+          sphere: { colorscheme: 'greenCarbon', scale: 0.4 }
+        });
+      } else if (style === 'ballstick') {
+        viewer.setStyle({model: ligandModel}, {
+          stick: { colorscheme: 'greenCarbon', radius: 0.15 },
+          sphere: { colorscheme: 'greenCarbon', scale: 0.25 }
+        });
+      }
+      
+      viewer.render();
+    }
+    
+    function toggleHBonds() {
+      hbondsVisible = !hbondsVisible;
+      var btn = document.getElementById('btn-hbonds');
+      if (hbondsVisible) {
+        btn.classList.add('active-cyan');
+        showHBonds();
+      } else {
+        btn.classList.remove('active-cyan');
+        // Remove H-bond visualizations
+        viewer.removeAllShapes();
+        if (hydrophobicVisible) showHydrophobicContacts();
+      }
+    }
+    
+    function showHBonds() {
+      if (!proteinModel || !ligandModel) return;
+      
+      // Get atoms that can form H-bonds (N, O donors/acceptors)
+      var proteinAtoms = viewer.getModel(proteinModel).selectedAtoms({elem: ['N', 'O']});
+      var ligandAtoms = viewer.getModel(ligandModel).selectedAtoms({elem: ['N', 'O']});
+      
+      // Find potential H-bonds (distance < 3.5 Angstroms)
+      for (var i = 0; i < ligandAtoms.length; i++) {
+        for (var j = 0; j < proteinAtoms.length; j++) {
+          var la = ligandAtoms[i];
+          var pa = proteinAtoms[j];
+          var dist = Math.sqrt(
+            Math.pow(la.x - pa.x, 2) + 
+            Math.pow(la.y - pa.y, 2) + 
+            Math.pow(la.z - pa.z, 2)
+          );
+          if (dist < 3.5 && dist > 1.5) {
+            viewer.addCylinder({
+              start: {x: la.x, y: la.y, z: la.z},
+              end: {x: pa.x, y: pa.y, z: pa.z},
+              radius: 0.08,
+              color: '#06b6d4',
+              dashed: true,
+              dashLength: 0.2,
+              gapLength: 0.1
+            });
+          }
+        }
+      }
+      viewer.render();
+    }
+    
+    function toggleHydrophobic() {
+      hydrophobicVisible = !hydrophobicVisible;
+      var btn = document.getElementById('btn-hydro');
+      if (hydrophobicVisible) {
+        btn.classList.add('active-amber');
+        showHydrophobicContacts();
+      } else {
+        btn.classList.remove('active-amber');
+        viewer.removeAllShapes();
+        if (hbondsVisible) showHBonds();
+      }
+    }
+    
+    function showHydrophobicContacts() {
+      if (!proteinModel || !ligandModel) return;
+      
+      // Get hydrophobic atoms (C atoms)
+      var proteinAtoms = viewer.getModel(proteinModel).selectedAtoms({elem: 'C'});
+      var ligandAtoms = viewer.getModel(ligandModel).selectedAtoms({elem: 'C'});
+      
+      // Find hydrophobic contacts (3.5-4.5 Angstroms)
+      for (var i = 0; i < ligandAtoms.length; i++) {
+        for (var j = 0; j < proteinAtoms.length; j++) {
+          var la = ligandAtoms[i];
+          var pa = proteinAtoms[j];
+          var dist = Math.sqrt(
+            Math.pow(la.x - pa.x, 2) + 
+            Math.pow(la.y - pa.y, 2) + 
+            Math.pow(la.z - pa.z, 2)
+          );
+          if (dist < 4.5 && dist > 3.0) {
+            viewer.addCylinder({
+              start: {x: la.x, y: la.y, z: la.z},
+              end: {x: pa.x, y: pa.y, z: pa.z},
+              radius: 0.05,
+              color: '#f59e0b',
+              opacity: 0.6
+            });
+          }
+        }
+      }
+      viewer.render();
+    }
+    
+    function showBindingSite() {
+      bindingSiteActive = !bindingSiteActive;
+      var btn = document.getElementById('btn-binding');
+      
+      if (bindingSiteActive) {
+        btn.classList.add('active');
+        if (proteinModel && ligandModel) {
+          // Show residues within 5A of ligand
+          viewer.setStyle({model: proteinModel}, {});
+          viewer.setStyle(
+            {model: proteinModel, byres: true, within: {distance: 5, sel: {model: ligandModel}}},
+            {
+              stick: { colorscheme: 'amino', radius: 0.15 },
+              cartoon: { color: 'spectrum', opacity: 0.3 }
+            }
+          );
+          viewer.zoomTo({model: ligandModel});
+          viewer.zoom(0.7, 500);
+        }
+      } else {
+        btn.classList.remove('active');
+        setProteinStyle(proteinStyle);
+        resetView();
+      }
+      viewer.render();
+    }
+    
+    function resetView() {
+      viewer.zoomTo();
+      viewer.zoom(0.9, 500);
+    }
+    
+    function zoomLigand() {
+      if (ligandModel) {
+        viewer.zoomTo({model: ligandModel});
+        viewer.zoom(0.7, 500);
+      }
+    }
+    
+    function toggleSpin() {
+      spinning = !spinning;
+      if (spinning) {
+        viewer.spin('y', 1);
+      } else {
+        viewer.spin(false);
+      }
+    }
+  <\/script>
+</body>
+</html>`;
+                  })()}
+                  className="w-full h-full border-0"
+                  title={`3D structure of protein-ligand complex pose ${selectedPose}`}
+                  sandbox="allow-scripts allow-same-origin"
+                />
+                
+                {/* Download button overlay */}
+                <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
                   <button
                     onClick={handleDownloadPDBQT}
-                    className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 bg-white/95 backdrop-blur border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+                    title="Download ligand pose only"
                   >
                     <FileDown className="w-4 h-4" />
-                    Download Pose #{selectedPose} PDBQT
+                    Ligand PDBQT
                   </button>
-                </>
-              ) : (
+                  {hasProteinData && (
+                    <button
+                      onClick={handleDownloadComplex}
+                      className="flex items-center gap-2 px-3 py-2 bg-blue-500 backdrop-blur border border-blue-600 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium shadow-sm"
+                      title="Download protein-ligand complex"
+                    >
+                      <FileDown className="w-4 h-4" />
+                      Complex PDBQT
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50">
+                <Atom className="w-16 h-16 mb-4 text-gray-300" />
+                <p className="text-lg font-medium text-gray-600">Ligand Pose #{selectedPose}</p>
                 <p className="text-sm mt-2 text-gray-400">
                   Structure coordinates not available for this pose
                 </p>
-              )}
-            </div>
-            
-            {/* Structure Info Badge */}
-            {hasPdbqtData && (
-              <div className="absolute top-4 right-4 bg-emerald-500/20 backdrop-blur-sm rounded-lg px-3 py-2 text-emerald-300 text-xs border border-emerald-500/30">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                  <span>Structure Available</span>
-                </div>
               </div>
             )}
           </div>
@@ -509,6 +1077,26 @@ export default function DockingResultsViewer({ jobId, result: initialResult, sho
           </div>
         </div>
 
+        {/* Console Output / Execution Log */}
+        {results.console_output && (
+          <div className="border border-gray-200 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 bg-gray-800 text-white">
+              <div className="flex items-center gap-2">
+                <Table className="w-4 h-4" />
+                <span className="text-sm font-medium">Execution Log</span>
+              </div>
+              {results.execution_time_seconds && (
+                <span className="text-xs text-gray-400">
+                  Completed in {results.execution_time_seconds.toFixed(1)}s
+                </span>
+              )}
+            </div>
+            <pre className="bg-gray-900 text-green-400 p-4 text-xs font-mono overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap">
+              {results.console_output}
+            </pre>
+          </div>
+        )}
+
         {/* Download Section */}
         <div className="flex items-center justify-between pt-4 border-t border-gray-200">
           <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -528,7 +1116,7 @@ export default function DockingResultsViewer({ jobId, result: initialResult, sho
             <button
               onClick={handleDownloadPDBQT}
               disabled={!hasPdbqtData || isDownloading}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isDownloading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

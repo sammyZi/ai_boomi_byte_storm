@@ -73,6 +73,11 @@ class DockingJob(BaseModel):
     started_at: Optional[datetime] = Field(default=None, description="Job start timestamp")
     completed_at: Optional[datetime] = Field(default=None, description="Job completion timestamp")
     
+    # Progress tracking
+    progress_percent: int = Field(default=0, ge=0, le=100, description="Job progress percentage")
+    current_step: Optional[str] = Field(default=None, description="Current processing step")
+    console_output: str = Field(default="", description="Console output from docking execution")
+    
     # Parameters
     grid_params: Optional[GridBoxParams] = Field(default=None, description="Grid box parameters")
     docking_params: DockingParams = Field(default_factory=DockingParams, description="Docking parameters")
@@ -86,6 +91,9 @@ class DockingJob(BaseModel):
     protein_pdbqt_path: Optional[str] = Field(default=None, description="Path to protein PDBQT file")
     ligand_pdbqt_path: Optional[str] = Field(default=None, description="Path to ligand PDBQT file")
     output_pdbqt_path: Optional[str] = Field(default=None, description="Path to output PDBQT file")
+    
+    # Structure data for visualization
+    protein_pdbqt_data: Optional[str] = Field(default=None, description="Protein PDBQT structure data for visualization")
     
     class Config:
         use_enum_values = True

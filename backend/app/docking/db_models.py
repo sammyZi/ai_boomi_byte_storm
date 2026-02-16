@@ -46,6 +46,7 @@ class DockingJobDB(Base):
         protein_pdbqt_path: Path to protein PDBQT file
         ligand_pdbqt_path: Path to ligand PDBQT file
         output_pdbqt_path: Path to output PDBQT file
+        protein_pdbqt_data: Protein PDBQT structure data for visualization
         best_affinity: Best binding affinity from results
         results: Relationship to DockingResultDB
     """
@@ -87,6 +88,14 @@ class DockingJobDB(Base):
     protein_pdbqt_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     ligand_pdbqt_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     output_pdbqt_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    
+    # Structure data for visualization
+    protein_pdbqt_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    # Progress tracking (for real-time updates)
+    progress_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    current_step: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    console_output: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # Results summary
     best_affinity: Mapped[Optional[float]] = mapped_column(Float, nullable=True, index=True)

@@ -17,8 +17,10 @@ from config.settings import settings
 from app.models import DiscoveryRequest, DiscoveryResponse, ErrorResponse, AnalyzeCandidateRequest, AnalyzeCandidateResponse
 from app.discovery_pipeline import DiscoveryPipeline
 from app.biomistral_engine import BioMistralEngine
+from app.alphafold_client import AlphaFoldClient
 from app.rate_limiter import RateLimiter, RateLimitMiddleware
 from app.security import anonymize_ip, get_client_ip
+from app.disease_resolver import get_disease_resolver, DiseaseMatch, SuggestionResponse, ConfidenceLevel
 from app.docking.models import (
     DockingJobRequest,
     DockingJobResponse,
@@ -285,6 +287,259 @@ async def health_check():
     }
 
 
+# ==================== Disease Resolution API ====================
+
+@app.get(
+    "/api/diseases/suggest",
+    summary="Get intelligent disease suggestions",
+    description="""
+    Intelligent disease resolution with 5-layer architecture:
+    
+    **Layer 1 - Input Normalization:**
+    - Typo correction (Levenshtein distance < 2)
+    - Abbreviation expansion (AD → Alzheimer's disease)
+    - Common misspelling fixes
+    
+    **Layer 2 - Multi-Ontology Lookup:**
+    - EFO (Experimental Factor Ontology) with 20K+ terms
+    - Cross-references to Disease Ontology, MeSH
+    
+    **Layer 3 - Hierarchical Expansion:**
+    - Walks up ontology tree if specific disease has no targets
+    - Suggests broader parent diseases
+    
+    **Layer 4 - NLP Semantic Matching:**
+    - Cosine similarity matching
+    - Medical term weighting
+    
+    **Layer 5 - Smart Fallbacks:**
+    - Symptom detection → disease suggestions
+    - Category-based browsing
+    
+    Returns ranked suggestions with confidence scores and target counts.
+    """,
+    responses={
+        200: {
+            "description": "Disease suggestions with confidence scores",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "query": "alzheimers",
+                        "suggestions": [
+                            {
+                                "disease_id": "EFO_0000249",
+                                "disease_name": "Alzheimer's disease",
+                                "match_type": "typo_corrected",
+                                "confidence": 0.92,
+                                "confidence_level": "high",
+                                "target_count": 1847,
+                                "correction_applied": "Corrected: alzheimers → Alzheimer's"
+                            }
+                        ],
+                        "confidence_level": "high",
+                        "message": "Did you mean: Alzheimer's disease?",
+                        "processing_time_ms": 145
+                    }
+                }
+            }
+        },
+        400: {"description": "Invalid query", "model": ErrorResponse}
+    },
+    tags=["Disease Resolution"]
+)
+async def get_disease_suggestions(
+    q: str,
+    max_results: int = 10
+):
+    """
+    Get intelligent disease suggestions based on user query.
+    
+    Args:
+        q: Search query (minimum 2 characters)
+        max_results: Maximum number of suggestions to return (default: 10)
+    
+    Returns:
+        SuggestionResponse with ranked disease matches
+    """
+    if not q or len(q.strip()) < 2:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "INVALID_QUERY",
+                "message": "Query must be at least 2 characters",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+    
+    if len(q) > 200:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "QUERY_TOO_LONG",
+                "message": "Query must not exceed 200 characters",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+    
+    resolver = get_disease_resolver()
+    result = await resolver.resolve(q, max_suggestions=max_results)
+    
+    # Convert to dict for JSON response
+    return {
+        "query": result.query,
+        "suggestions": [
+            {
+                "disease_id": s.disease_id,
+                "disease_name": s.disease_name,
+                "match_type": s.match_type.value,
+                "confidence": round(s.confidence, 3),
+                "confidence_level": s.confidence_level.value,
+                "target_count": s.target_count,
+                "synonyms": s.synonyms[:5] if s.synonyms else [],
+                "description": s.description[:200] if s.description else "",
+                "correction_applied": s.correction_applied,
+                "parent_diseases": s.parent_diseases[:3] if s.parent_diseases else []
+            }
+            for s in result.suggestions
+        ],
+        "confidence_level": result.confidence_level.value,
+        "message": result.message,
+        "processing_time_ms": result.processing_time_ms
+    }
+
+
+@app.get(
+    "/api/diseases/{disease_id}/details",
+    summary="Get detailed disease information",
+    description="Get comprehensive details about a disease including target count, synonyms, and parent diseases.",
+    responses={
+        200: {
+            "description": "Disease details",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "disease_id": "EFO_0000249",
+                        "disease_name": "Alzheimer's disease",
+                        "description": "A progressive neurodegenerative disease...",
+                        "synonyms": ["AD", "Alzheimer disease", "Alzheimer dementia"],
+                        "parent_diseases": ["neurodegenerative disease", "dementia"],
+                        "target_count": 1847
+                    }
+                }
+            }
+        },
+        404: {"description": "Disease not found", "model": ErrorResponse}
+    },
+    tags=["Disease Resolution"]
+)
+async def get_disease_details(disease_id: str):
+    """
+    Get detailed information about a specific disease.
+    
+    Args:
+        disease_id: EFO disease identifier
+    
+    Returns:
+        Detailed disease information
+    """
+    resolver = get_disease_resolver()
+    details = await resolver.ontology.get_disease_details(disease_id)
+    
+    if not details:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": "DISEASE_NOT_FOUND",
+                "message": f"Disease with ID '{disease_id}' not found",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+    
+    return details
+
+
+@app.get(
+    "/api/protein/{uniprot_id}/structure",
+    summary="Get protein structure from AlphaFold",
+    description="Retrieve 3D protein structure in PDB format with pLDDT confidence scores. Uses caching with 24-hour TTL.",
+    responses={
+        200: {
+            "description": "Protein structure data",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "uniprot_id": "Q5S007",
+                        "pdb_data": "ATOM 1 N ALA A 1 ...",
+                        "plddt_score": 77.5,
+                        "is_low_confidence": False,
+                        "metadata": {
+                            "sequence_length": 2527,
+                            "gene": "LRRK2",
+                            "organism": "Homo sapiens"
+                        }
+                    }
+                }
+            }
+        },
+        404: {"description": "Protein structure not found"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def get_protein_structure(uniprot_id: str):
+    """Get protein structure from AlphaFold Database.
+    
+    Fetches protein structure by UniProt ID from AlphaFold, handling
+    different model versions automatically. Results are cached for 24 hours.
+    
+    Args:
+        uniprot_id: UniProt identifier (e.g., Q5S007, P12345)
+    
+    Returns:
+        Protein structure with PDB data and confidence metrics
+    """
+    try:
+        # Validate UniProt ID format
+        uniprot_id = uniprot_id.strip().upper()
+        if not uniprot_id or len(uniprot_id) < 4 or len(uniprot_id) > 15:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid UniProt ID format"
+            )
+        
+        # Fetch structure using AlphaFold client
+        client = AlphaFoldClient()
+        structure = await client.get_protein_structure(uniprot_id)
+        
+        if not structure:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No structure found for UniProt ID: {uniprot_id}"
+            )
+        
+        # Return structure with additional metadata
+        return {
+            "uniprot_id": structure.uniprot_id,
+            "pdb_data": structure.pdb_data,
+            "plddt_score": structure.plddt_score,
+            "is_low_confidence": structure.is_low_confidence,
+            "confidence_category": (
+                "very_high" if structure.plddt_score >= 90 else
+                "high" if structure.plddt_score >= 70 else
+                "low" if structure.plddt_score >= 50 else
+                "very_low"
+            )
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching protein structure for {uniprot_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to fetch protein structure"
+        )
+
+
 @app.post(
     "/api/discover",
     response_model=DiscoveryResponse,
@@ -539,7 +794,7 @@ async def submit_docking_job(request: DockingJobRequest) -> DockingJobResponse:
             )
         
         # Create docking job
-        job = create_docking_job(
+        job = await create_docking_job(
             candidate_id=request.candidate_id,
             target_uniprot_id=request.target_uniprot_id,
             disease_name=request.disease_name,
@@ -558,8 +813,8 @@ async def submit_docking_job(request: DockingJobRequest) -> DockingJobResponse:
         return DockingJobResponse(
             job_id=job.id,
             status=job.status,
-            message="Docking job submitted successfully",
-            estimated_time_seconds=300  # ~5 minutes typical
+            message="Docking job submitted successfully. Progress will be tracked in real-time.",
+            estimated_time_seconds=180  # ~3 minutes typical with OpenBabel conversion
         )
         
     except HTTPException:
@@ -601,7 +856,7 @@ async def get_docking_status(job_id: str) -> DockingStatusResponse:
     Returns:
         DockingStatusResponse with job details and results
     """
-    job = get_job(job_id)
+    job = await get_job(job_id)
     
     if not job:
         raise HTTPException(
@@ -613,7 +868,21 @@ async def get_docking_status(job_id: str) -> DockingStatusResponse:
             }
         )
     
-    queue_pos = get_queue_position(job_id) if job.status == DockingJobStatus.QUEUED else None
+    queue_pos = await get_queue_position(job_id) if job.status == DockingJobStatus.QUEUED else None
+    
+    # Calculate estimated time based on progress
+    estimated_remaining = None
+    if job.status == DockingJobStatus.QUEUED:
+        # 2 minutes per queued job ahead
+        estimated_remaining = (queue_pos or 1) * 120
+    elif job.status == DockingJobStatus.RUNNING and job.started_at:
+        # Estimate based on progress
+        elapsed = (datetime.utcnow() - job.started_at.replace(tzinfo=None)).total_seconds()
+        if job.progress_percent > 0:
+            total_estimate = elapsed / (job.progress_percent / 100)
+            estimated_remaining = max(0, int(total_estimate - elapsed))
+        else:
+            estimated_remaining = 180  # 3 minutes default
     
     return DockingStatusResponse(
         job=job,
@@ -648,7 +917,7 @@ async def get_docking_results(job_id: str):
     Returns:
         Docking results with poses and binding affinities
     """
-    job = get_job(job_id)
+    job = await get_job(job_id)
     
     if not job:
         raise HTTPException(
@@ -675,23 +944,54 @@ async def get_docking_results(job_id: str):
     if job.results:
         for i, result in enumerate(job.results):
             poses.append({
-                "pose_number": i + 1,
+                "pose_number": result.pose_number,
                 "binding_affinity": result.binding_affinity,
                 "rmsd_lb": result.rmsd_lb,
                 "rmsd_ub": result.rmsd_ub,
                 "pdbqt_data": result.pdbqt_data
             })
     
+    # Calculate execution time
+    execution_time = None
+    if job.started_at and job.completed_at:
+        execution_time = (job.completed_at - job.started_at).total_seconds()
+    
+    # Load protein PDBQT data if not in memory but file path exists
+    protein_pdbqt_data = job.protein_pdbqt_data
+    logger.info(f"[{job_id}] Initial protein_pdbqt_data from job object: {len(protein_pdbqt_data) if protein_pdbqt_data else 0} bytes")
+    logger.info(f"[{job_id}] Protein PDBQT path: {job.protein_pdbqt_path}")
+    
+    if not protein_pdbqt_data and job.protein_pdbqt_path:
+        try:
+            import os
+            logger.info(f"[{job_id}] Attempting to load protein from file: {job.protein_pdbqt_path}")
+            if os.path.exists(job.protein_pdbqt_path):
+                with open(job.protein_pdbqt_path, 'r') as f:
+                    protein_pdbqt_data = f.read()
+                logger.info(f"[{job_id}] Loaded protein PDBQT from file: {len(protein_pdbqt_data)} bytes")
+            else:
+                logger.warning(f"[{job_id}] Protein PDBQT file does not exist: {job.protein_pdbqt_path}")
+        except Exception as e:
+            logger.warning(f"[{job_id}] Could not load protein PDBQT from file: {e}")
+    
+    # Debug: Log protein data status
+    logger.info(f"[{job_id}] Returning results - protein_pdbqt_data length: {len(protein_pdbqt_data) if protein_pdbqt_data else 0} bytes")
+    logger.info(f"[{job_id}] Returning results - num poses: {len(poses)}")
+    
     return {
         "job_id": job.id,
         "candidate_id": job.candidate_id,
         "target_uniprot_id": job.target_uniprot_id,
-        "status": job.status.value,
+        "status": job.status.value if hasattr(job.status, 'value') else job.status,
         "best_affinity": job.best_affinity,
         "num_poses": len(poses),
         "poses": poses,
+        "protein_pdbqt": protein_pdbqt_data,  # Include protein structure for visualization
+        "console_output": job.console_output,
+        "execution_time_seconds": execution_time,
         "error_message": job.error_message,
         "created_at": job.created_at.isoformat() if job.created_at else None,
+        "started_at": job.started_at.isoformat() if job.started_at else None,
         "completed_at": job.completed_at.isoformat() if job.completed_at else None
     }
 
@@ -723,7 +1023,7 @@ async def cancel_docking(job_id: str):
     Returns:
         Success message or error
     """
-    job = get_job(job_id)
+    job = await get_job(job_id)
     
     if not job:
         raise HTTPException(
@@ -735,7 +1035,7 @@ async def cancel_docking(job_id: str):
             }
         )
     
-    if cancel_docking_job(job_id):
+    if await cancel_docking_job(job_id):
         return {"message": "Docking job cancelled successfully", "job_id": job_id}
     else:
         raise HTTPException(

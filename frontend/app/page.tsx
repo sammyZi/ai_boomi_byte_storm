@@ -3,26 +3,33 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import SearchBar from '@/components/SearchBar';
+import SmartDiseaseSearch from '@/components/SmartDiseaseSearch';
 
 export default function HomePage() {
   const router = useRouter();
   const [isSearching, setIsSearching] = useState(false);
 
-  const handleSearch = (query: string) => {
+  const handleSearch = (query: string, diseaseId?: string) => {
     if (query && query.length >= 2) {
       setIsSearching(true);
+      // Include disease ID if available for more precise results
+      const params = new URLSearchParams({ q: query });
+      if (diseaseId) {
+        params.set('diseaseId', diseaseId);
+      }
       setTimeout(() => {
-        router.push(`/results?q=${encodeURIComponent(query)}`);
+        router.push(`/results?${params.toString()}`);
       }, 100);
     }
   };
 
   const exampleSearches = [
-    "Alzheimer's disease",
-    "Parkinson's disease",
-    'Type 2 diabetes',
-    'Breast cancer',
+    { label: "Alzheimer's disease", abbrev: "AD" },
+    { label: "Parkinson's disease", abbrev: "PD" },
+    { label: 'Type 2 diabetes', abbrev: "T2D" },
+    { label: 'Breast cancer', abbrev: null },
+    { label: 'Rheumatoid arthritis', abbrev: "RA" },
+    { label: 'Multiple sclerosis', abbrev: "MS" },
   ];
 
   return (
@@ -48,33 +55,38 @@ export default function HomePage() {
             {/* Left Content */}
             <div>
               {/* Heading */}
-              <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6 leading-tight">
+              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4 leading-tight">
                 Transform Disease Queries into
-                <span className="block text-blue-600 mt-2">Drug Candidates</span>
+                <span className="block text-blue-600 mt-1">Drug Candidates</span>
               </h1>
 
               {/* Description */}
-              <p className="text-lg text-gray-600 max-w-md mb-8 leading-relaxed">
+              <p className="text-base text-gray-600 max-w-md mb-6 leading-relaxed">
                 Discover ranked drug candidates in seconds using Open Targets, ChEMBL,
                 AlphaFold, and AI-powered molecular analysis.
               </p>
 
               {/* Search Bar */}
               <div className="mb-6">
-                <SearchBar onSearch={handleSearch} isLoading={isSearching} />
+                <SmartDiseaseSearch onSearch={handleSearch} isLoading={isSearching} />
               </div>
 
               {/* Example Searches */}
               <div>
-                <p className="text-sm text-gray-500 mb-3">Try an example:</p>
+                <p className="text-sm text-gray-500 mb-3">Try an example (supports abbreviations & typos!):</p>
                 <div className="flex flex-wrap gap-2">
                   {exampleSearches.map((example) => (
                     <button
-                      key={example}
-                      onClick={() => handleSearch(example)}
-                      className="px-4 py-2 bg-white/80 hover:bg-white border border-gray-200 hover:border-blue-300 rounded-lg text-sm text-gray-600 hover:text-blue-600 transition-all shadow-sm hover:shadow-md"
+                      key={example.label}
+                      onClick={() => handleSearch(example.label)}
+                      className="px-4 py-2 bg-white/80 hover:bg-white border border-gray-200 hover:border-blue-300 rounded-lg text-sm text-gray-600 hover:text-blue-600 transition-all shadow-sm hover:shadow-md group"
                     >
-                      {example}
+                      <span>{example.label}</span>
+                      {example.abbrev && (
+                        <span className="ml-1.5 text-xs text-gray-400 group-hover:text-blue-400">
+                          ({example.abbrev})
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>

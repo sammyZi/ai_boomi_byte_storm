@@ -73,7 +73,7 @@ class Settings(BaseSettings):
     
     # Rate Limiting (Requirement 13.1)
     rate_limit_per_minute: int = Field(
-        default=100,
+        default=1000,
         ge=1,
         description="Maximum requests per minute per IP"
     )
