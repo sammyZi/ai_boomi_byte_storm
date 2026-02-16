@@ -197,55 +197,16 @@ class PDBQTConverter:
             # For large proteins, write directly to file instead of string (faster)
             output_path = os.path.join(self.work_dir, f"{uniprot_id}_receptor.pdbqt")
             
-            if mol.NumAtoms() > 10000:
-                # Large protein - try command-line obabel first (can be faster)
-                logger.info(f"[{uniprot_id}] Large protein detected, trying fast conversion...")
-                
-                # First save as PDB with hydrogens added
-                temp_pdb_path = os.path.join(self.work_dir, f"{uniprot_id}_temp.pdb")
-                pdb_conv = ob.OBConversion()
-                pdb_conv.SetOutFormat("pdb")
-                pdb_conv.WriteFile(mol, temp_pdb_path)
-                
-                # Try using obabel command line (often faster for large files)
-                try:
-                    import subprocess
-                    result = subprocess.run(
-                        ['obabel', temp_pdb_path, '-O', output_path, '-xr', '-p', '7.4'],
-                        capture_output=True,
-                        text=True,
-                        timeout=300  # 5 minute timeout
-                    )
-                    if result.returncode == 0 and os.path.exists(output_path):
-                        with open(output_path, 'r') as f:
-                            pdbqt_data = f.read()
-                        logger.info(f"[{uniprot_id}] Fast obabel conversion complete, {len(pdbqt_data)} bytes")
-                        # Try to clean up temp file, but don't fail if we can't (Windows file locking)
-                        try:
-                            os.remove(temp_pdb_path)
-                        except (PermissionError, OSError) as del_err:
-                            logger.debug(f"[{uniprot_id}] Could not delete temp file (will be cleaned up later): {del_err}")
-                    else:
-                        raise Exception(f"obabel failed: {result.stderr}")
-                except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-                    logger.warning(f"[{uniprot_id}] obabel command failed ({e}), using Python API...")
-                    # Try to clean up temp file
-                    try:
-                        if os.path.exists(temp_pdb_path):
-                            os.remove(temp_pdb_path)
-                    except (PermissionError, OSError):
-                        pass
-                    conv.WriteFile(mol, output_path)
-                    with open(output_path, 'r') as f:
-                        pdbqt_data = f.read()
-                    logger.info(f"[{uniprot_id}] PDBQT write complete, {len(pdbqt_data)} bytes")
-            else:
-                logger.info(f"[{uniprot_id}] Writing PDBQT format...")
-                pdbqt_data = conv.WriteString(mol)
-                logger.info(f"[{uniprot_id}] PDBQT write complete, {len(pdbqt_data)} bytes")
+            # Write PDBQT format
+            logger.info(f"[{uniprot_id}] Writing PDBQT format...")
+            conv.WriteFile(mol, output_path)
+            with open(output_path, 'r') as f:
+                pdbqt_data = f.read()
+            logger.info(f"[{uniprot_id}] PDBQT write complete, {len(pdbqt_data)} bytes")
             
             if not pdbqt_data or len(pdbqt_data.strip()) == 0:
-                raise ValueError("PDBQT conversion produced empty output")
+                logger.warning(f"[{uniprot_id}] Open Babel produced empty output, using fallback conversion")
+                return self._fallback_protein_conversion(pdb_data, uniprot_id)
             
             # Clean receptor PDBQT - remove ligand-specific tags
             logger.info(f"[{uniprot_id}] Cleaning receptor PDBQT (removing ligand tags)...")

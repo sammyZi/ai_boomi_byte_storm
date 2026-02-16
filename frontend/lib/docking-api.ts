@@ -88,20 +88,29 @@ export const dockingApi = {
     const data = await response.json();
     const job = data.job;
     
+    // Calculate progress based on job status and progress_percent
+    let progressPercent = job.progress_percent || 0;
+    if (job.status === 'completed') progressPercent = 100;
+    else if (job.status === 'failed') progressPercent = 100;
+    
+    // Get current step from job or derive from status
+    let currentStep = job.current_step;
+    if (!currentStep) {
+      if (job.status === 'queued') currentStep = 'Waiting in queue';
+      else if (job.status === 'running') currentStep = 'Running docking simulation';
+      else if (job.status === 'completed') currentStep = 'Docking complete';
+      else if (job.status === 'failed') currentStep = 'Docking failed';
+    }
+    
     return {
       job_id: job.id,
       status: job.status,
-      progress_percent: job.status === 'completed' ? 100 : 
-                        job.status === 'running' ? 50 : 
-                        job.status === 'failed' ? 100 : 0,
-      current_step: job.status === 'queued' ? 'Waiting in queue' :
-                    job.status === 'running' ? 'Running docking simulation' :
-                    job.status === 'completed' ? 'Docking complete' :
-                    job.status === 'failed' ? 'Docking failed' : undefined,
-      estimated_time_remaining_seconds: job.status === 'queued' ? 300 : 
-                                         job.status === 'running' ? 150 : undefined,
+      progress_percent: progressPercent,
+      current_step: currentStep,
+      estimated_time_remaining_seconds: data.estimated_time_remaining,
       queue_position: data.queue_position,
       error_message: job.error_message,
+      console_output: job.console_output,
       created_at: job.created_at,
       started_at: job.started_at,
       completed_at: job.completed_at,

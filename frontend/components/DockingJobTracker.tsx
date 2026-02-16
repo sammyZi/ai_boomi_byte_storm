@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Clock,
@@ -11,9 +11,13 @@ import {
   Ban,
   RefreshCw,
   ArrowRight,
+  Terminal,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { DockingJobStatusResponse, DockingJobStatus } from '@/types';
 import { dockingApi, DockingApiError } from '@/lib/docking-api';
+import DockingPipelineVisualizer from './DockingPipelineVisualizer';
 
 interface DockingJobTrackerProps {
   jobId: string;
@@ -21,7 +25,7 @@ interface DockingJobTrackerProps {
   onCancel?: (jobId: string) => void;
 }
 
-const POLL_INTERVAL_MS = 5000; // 5 seconds
+const POLL_INTERVAL_MS = 2000; // 2 seconds for more responsive updates
 
 const STATUS_CONFIG: Record<
   DockingJobStatus,
@@ -94,6 +98,15 @@ export default function DockingJobTracker({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showConsole, setShowConsole] = useState(true);
+  const consoleRef = useRef<HTMLPreElement>(null);
+
+  // Auto-scroll console output
+  useEffect(() => {
+    if (consoleRef.current && showConsole) {
+      consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
+    }
+  }, [status?.console_output, showConsole]);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -249,7 +262,7 @@ export default function DockingJobTracker({
             {status.status === 'completed' && (
               <button
                 onClick={handleViewResults}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 rounded-lg shadow-md transition-all"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors"
               >
                 View Results
                 <ArrowRight className="w-4 h-4" />
@@ -273,10 +286,10 @@ export default function DockingJobTracker({
             <div
               className={`h-full transition-all duration-500 ease-out rounded-full ${
                 status.status === 'completed'
-                  ? 'bg-gradient-to-r from-emerald-400 to-emerald-500'
+                  ? 'bg-emerald-500'
                   : status.status === 'failed'
-                  ? 'bg-gradient-to-r from-red-400 to-red-500'
-                  : 'bg-gradient-to-r from-blue-400 to-indigo-500'
+                  ? 'bg-red-500'
+                  : 'bg-blue-500'
               }`}
               style={{ width: `${status.progress_percent}%` }}
             />
@@ -287,7 +300,43 @@ export default function DockingJobTracker({
         {status.current_step && (
           <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-            <p className="text-sm text-gray-700">{status.current_step}</p>
+            <p className="text-sm text-gray-700 font-medium">{status.current_step}</p>
+          </div>
+        )}
+
+        {/* Pipeline Visualizer */}
+        {(status.status === 'running' || status.status === 'completed') && (
+          <DockingPipelineVisualizer 
+            currentStep={status.current_step}
+            progressPercent={status.progress_percent}
+          />
+        )}
+
+        {/* Console Output */}
+        {status.console_output && (
+          <div className="border border-gray-200 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setShowConsole(!showConsole)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-800 text-white hover:bg-gray-700 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Terminal className="w-4 h-4" />
+                <span className="text-sm font-medium">Console Output</span>
+              </div>
+              {showConsole ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </button>
+            {showConsole && (
+              <pre
+                ref={consoleRef}
+                className="bg-gray-900 text-green-400 p-4 text-xs font-mono overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap"
+              >
+                {status.console_output}
+              </pre>
+            )}
           </div>
         )}
 

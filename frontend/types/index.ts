@@ -147,6 +147,7 @@ export interface DockingJobStatusResponse {
   estimated_time_remaining_seconds?: number;
   queue_position?: number;
   error_message?: string;
+  console_output?: string;
   created_at: string;
   started_at?: string;
   completed_at?: string;
@@ -168,5 +169,11 @@ export interface DockingJobResult {
   best_affinity?: number;
   num_poses: number;
   poses: DockingPose[];
+  protein_pdbqt?: string;  // Protein structure for visualization
+  console_output?: string;
+  execution_time_seconds?: number;
   error_message?: string;
+  created_at?: string;
+  started_at?: string;
+  completed_at?: string;
 }

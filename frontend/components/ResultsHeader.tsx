@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, Clock, Target } from 'lucide-react';
+import { Download, Clock, Target, Database, Beaker, Dna } from 'lucide-react';
 import { DiscoveryResponse } from '@/types';
 import useExport from '@/hooks/useExport';
 
@@ -35,6 +35,23 @@ export default function ResultsHeader({ data }: ResultsHeaderProps) {
               <div className="text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200">
                 {new Date(data.timestamp).toLocaleString()}
               </div>
+            </div>
+            
+            {/* Data Sources */}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium text-gray-500 mr-1">Data sources:</span>
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200">
+                <Database className="w-3 h-3" />
+                Open Targets
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-purple-50 text-purple-700 rounded-lg border border-purple-200">
+                <Beaker className="w-3 h-3" />
+                ChEMBL
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-lg border border-blue-200">
+                <Dna className="w-3 h-3" />
+                AlphaFold
+              </span>
             </div>
           </div>
 

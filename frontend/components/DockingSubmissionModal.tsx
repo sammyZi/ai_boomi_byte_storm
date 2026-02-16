@@ -39,7 +39,7 @@ export default function DockingSubmissionModal({
   const [gridParams, setGridParams] = useState<GridBoxParams>(DEFAULT_GRID_PARAMS);
   const [dockingParams, setDockingParams] = useState<DockingParams>(DEFAULT_DOCKING_PARAMS);
 
-  const estimatedTime = '5-15 minutes';
+  const estimatedTime = '2-5 minutes';
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
@@ -329,7 +329,7 @@ export default function DockingSubmissionModal({
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="flex items-center gap-2 px-6 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-6 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>

@@ -16,9 +16,9 @@ import {
   Loader2,
   Calendar,
   Target,
-  ArrowLeft,
   Atom,
 } from 'lucide-react';
+import CompactNav from '@/components/CompactNav';
 import { dockingApi, DockingJobHistoryItem, DockingJobHistoryFilter, DockingApiError } from '@/lib/docking-api';
 
 // Status configurations
@@ -167,20 +167,14 @@ export default function DockingJobHistoryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <CompactNav title="Docking History" />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Back</span>
-          </button>
-          
+        <div className="mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-sm">
                 <History className="w-6 h-6 text-white" />
               </div>
               <div>

@@ -10,12 +10,12 @@ import ProteinViewer3D from '@/components/ProteinViewer3D';
 import MoleculeViewer3D from '@/components/MoleculeViewer3D';
 import DockingSubmissionModal from '@/components/DockingSubmissionModal';
 import DockingJobTracker from '@/components/DockingJobTracker';
-import DockingResultsViewer from '@/components/DockingResultsViewer';
+import IndustryDockingViewer from '@/components/IndustryDockingViewer';
 import DockingResultsAnalysis from '@/components/DockingResultsAnalysis';
+import CompactNav from '@/components/CompactNav';
 import DiscoveryAPI from '@/lib/discovery-api';
 import { dockingApi, DockingApiError } from '@/lib/docking-api';
 import {
-    ArrowLeft,
     Dna,
     FlaskConical,
     AlertTriangle,
@@ -220,23 +220,18 @@ function CandidateDetailsContent() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-gray-50 pb-20 pt-24">
+        <div className="min-h-screen bg-gray-50 pb-20">
+            <CompactNav 
+              title={candidate.molecule.name} 
+              backHref={disease ? `/results?q=${encodeURIComponent(disease)}` : '/'}
+            />
+            
             {/* Header Section */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-                <button
-                    onClick={handleBack}
-                    className="group flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors mb-6"
-                >
-                    <div className="p-2 rounded-xl group-hover:bg-blue-50 transition-colors">
-                        <ArrowLeft className="w-5 h-5" />
-                    </div>
-                    <span className="font-semibold">Back to Results</span>
-                </button>
-
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 mb-8">
                 {/* Title Card */}
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-blue-100 shadow-lg">
                     <div className="flex items-start gap-4">
-                        <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl font-bold text-xl shadow-md shadow-blue-500/30">
+                        <div className="flex items-center justify-center w-14 h-14 bg-blue-600 text-white rounded-xl font-bold text-xl shadow-md">
                             #{candidate.rank}
                         </div>
                         <div className="flex-1">
@@ -253,7 +248,7 @@ function CandidateDetailsContent() {
                             
                             {/* Score Badges */}
                             <div className="flex flex-wrap gap-2 mt-4">
-                                <div className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg text-xs font-bold shadow-sm">
+                                <div className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold shadow-sm">
                                     Score: {candidate.composite_score.toFixed(1)}/10
                                 </div>
                                 <div className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-xs font-semibold border border-purple-200">
@@ -277,7 +272,7 @@ function CandidateDetailsContent() {
                         onClick={() => setActiveTab('overview')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
                             activeTab === 'overview'
-                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                                ? 'bg-blue-600 text-white shadow-sm'
                                 : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
                         }`}
                     >
@@ -288,7 +283,7 @@ function CandidateDetailsContent() {
                         onClick={() => setActiveTab('docking')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
                             activeTab === 'docking'
-                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                                ? 'bg-blue-600 text-white shadow-sm'
                                 : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
                         }`}
                     >
@@ -312,7 +307,7 @@ function CandidateDetailsContent() {
                         {/* Docking Actions Header */}
                         <div className="flex items-center justify-between">
                             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                                <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full"></div>
+                                <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
                                 Molecular Docking
                             </h2>
                             <div className="flex items-center gap-2">
@@ -325,7 +320,7 @@ function CandidateDetailsContent() {
                                 </button>
                                 <button
                                     onClick={() => setShowDockingModal(true)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/30 font-medium"
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-lg font-medium"
                                 >
                                     <Play className="w-4 h-4" />
                                     Run Docking
@@ -372,16 +367,15 @@ function CandidateDetailsContent() {
                                 )}
                                 
                                 {/* Detailed Results */}
-                                <div className="space-y-4">
-                                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                                        <BarChart3 className="w-4 h-4 text-blue-600" />
+                                <div className="space-y-6">
+                                    <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                        <BarChart3 className="w-5 h-5 text-blue-600" />
                                         Completed Docking Jobs ({dockingResults.length})
                                     </h3>
                                     {dockingResults.filter(r => r && r.job_id).map(result => (
-                                        <DockingResultsViewer
+                                        <IndustryDockingViewer
                                             key={result.job_id}
                                             result={result}
-                                            showVisualization={true}
                                         />
                                     ))}
                                 </div>
@@ -395,7 +389,7 @@ function CandidateDetailsContent() {
                                 </p>
                                 <button
                                     onClick={() => setShowDockingModal(true)}
-                                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/30 font-medium"
+                                    className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-lg font-medium"
                                 >
                                     <Play className="w-5 h-5" />
                                     Run Docking Simulation
@@ -432,7 +426,7 @@ function CandidateDetailsContent() {
                                 <dt className="text-xs font-semibold text-gray-700">Lipinski Violations</dt>
                                 <dd className="font-bold text-gray-900 text-sm">{candidate.properties.lipinski_violations}</dd>
                             </div>
-                            <div className="flex justify-between items-center p-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-300">
+                            <div className="flex justify-between items-center p-2.5 bg-blue-100 rounded-lg border-2 border-blue-300">
                                 <dt className="text-xs font-semibold text-gray-700">QED (Drug-likeness)</dt>
                                 <dd className="font-mono font-bold text-blue-600 text-base">{candidate.properties.drug_likeness_score.toFixed(2)}</dd>
                             </div>
@@ -576,54 +570,32 @@ function CandidateDetailsContent() {
                     </div>
                 </div>
 
-                {/* 3D Structures - Bottom Section */}
-                <div className="mb-8">
+                {/* 3D Structures - Full Width Sections */}
+                <div className="mb-8 space-y-6">
                     <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full"></div>
+                        <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
                         3D Molecular Structures
                     </h2>
                     
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Protein Structure */}
-                        {candidate.target.uniprot_id && (
-                            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-blue-200 shadow-lg overflow-hidden">
-                                <div className="p-4 border-b border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-                                    <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                        <Dna className="w-4 h-4 text-blue-600" />
-                                        Target Protein Structure
-                                    </h3>
-                                    <p className="text-xs text-gray-600 mt-1 font-semibold">{candidate.target.protein_name}</p>
-                                    <p className="text-xs text-gray-500 mt-0.5 font-mono">UniProt: {candidate.target.uniprot_id}</p>
-                                </div>
-                                <div className="p-2 bg-gray-50">
-                                    <ProteinViewer3D
-                                        uniprotId={candidate.target.uniprot_id}
-                                        proteinName={candidate.target.protein_name}
-                                    />
-                                </div>
-                            </div>
-                        )}
+                    {/* Protein Structure - Full Width */}
+                    {candidate.target.uniprot_id && (
+                        <div className="w-full">
+                            <ProteinViewer3D
+                                uniprotId={candidate.target.uniprot_id}
+                                proteinName={candidate.target.protein_name}
+                            />
+                        </div>
+                    )}
 
-                        {/* Molecule Structure */}
-                        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-teal-200 shadow-lg overflow-hidden">
-                            <div className="p-4 border-b border-teal-200 bg-gradient-to-r from-teal-50 to-cyan-50">
-                                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                    <FlaskConical className="w-4 h-4 text-teal-600" />
-                                    Drug Molecule Structure
-                                </h3>
-                                <p className="text-xs text-gray-600 mt-1 font-semibold">{candidate.molecule.name}</p>
-                                <p className="text-xs text-gray-500 mt-0.5 font-mono">ChEMBL: {candidate.molecule.chembl_id}</p>
-                            </div>
-                            <div className="p-2 bg-gray-50">
-                                <MoleculeViewer3D
-                                    smiles={candidate.molecule.smiles}
-                                    moleculeName={candidate.molecule.name}
-                                />
-                            </div>
-                            <div className="p-3 bg-white border-t border-teal-200">
-                                <div className="text-xs text-gray-600 font-mono break-all bg-teal-50 p-2.5 rounded-lg border border-teal-200">
-                                    <span className="text-teal-700 font-bold">SMILES:</span> {candidate.molecule.smiles}
-                                </div>
+                    {/* Molecule Structure - Full Width */}
+                    <div className="w-full">
+                        <MoleculeViewer3D
+                            smiles={candidate.molecule.smiles}
+                            moleculeName={candidate.molecule.name}
+                        />
+                        <div className="mt-3 p-3 bg-white rounded-xl border border-gray-200">
+                            <div className="text-xs text-gray-600 font-mono break-all bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                                <span className="text-teal-700 font-bold">SMILES:</span> {candidate.molecule.smiles}
                             </div>
                         </div>
                     </div>

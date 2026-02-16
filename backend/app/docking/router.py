@@ -280,8 +280,8 @@ async def get_job_results(
     Returns:
         Docking results with all poses
     """
-    # Use in-memory job store (jobs are stored in tasks.py, not database)
-    job = get_job(job_id)
+    # Use database to get job
+    job = await get_job(job_id)
     
     if not job:
         raise HTTPException(
@@ -430,8 +430,8 @@ async def get_job_history(
     Returns:
         Paginated job history
     """
-    # Use in-memory job store (jobs are stored in tasks.py, not database)
-    all_jobs = get_all_jobs()
+    # Get all jobs from database
+    all_jobs = await get_all_jobs()
     
     # Apply filters
     filtered_jobs = all_jobs
