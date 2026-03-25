@@ -1,4 +1,4 @@
-# 🧬 AI-Powered Drug Discovery Platform
+# 🧬 GenomicAI
 
 ---
 
